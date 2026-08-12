@@ -1,0 +1,152 @@
+[
+  {"doc_id": "doc-01", "title": "Vellmar Station", "chunks": [
+    {"chunk_id": "doc-01#c0", "text": "Vellmar Station was established in 1962 by the Kessner Maritime Trust on the northern shore of Hallen Island. It was the first permanent installation in the Kessner Archipelago and remains the administrative centre for the six northern stations."},
+    {"chunk_id": "doc-01#c1", "text": "The station's principal research programme is tidal acoustics. Its seabed hydrophone array, installed in stages between 1978 and 1984, records low-frequency signals across the Hallen Trench."},
+    {"chunk_id": "doc-01#c2", "text": "The hydrophone array comprises 62 individual elements. Vellmar overwinters a crew of 14, the largest winter complement anywhere in the archipelago."}
+  ]},
+  {"doc_id": "doc-02", "title": "Tarnholt Station", "chunks": [
+    {"chunk_id": "doc-02#c0", "text": "Tarnholt Station sits on a basalt shelf at the eastern end of Corrin Sound. It was commissioned in 1971 as a seasonal camp and upgraded to year-round operation in 1989."},
+    {"chunk_id": "doc-02#c1", "text": "Tarnholt specialises in glaciological survey work, principally the mass balance of the Corrin Ice Cap. Survey teams drill a network of stakes each spring and revisit them at the close of the melt season."},
+    {"chunk_id": "doc-02#c2", "text": "The station maintains 240 survey stakes across the ice cap. Its longest continuous record, the Corrin mass balance series, began in 1973."}
+  ]},
+  {"doc_id": "doc-03", "title": "Osric Point Observatory", "chunks": [
+    {"chunk_id": "doc-03#c0", "text": "Osric Point Observatory occupies a headland on the western coast of Greve Island. The site was selected in 1958 for its unusually low atmospheric water vapour."},
+    {"chunk_id": "doc-03#c1", "text": "The observatory's main instrument is a 1.8 metre reflecting telescope, installed in 1966 and refitted with a modern detector package in 2004."},
+    {"chunk_id": "doc-03#c2", "text": "Osric Point records a median of 211 clear nights per year. Observing time is allocated in blocks of 5 nights."}
+  ]},
+  {"doc_id": "doc-04", "title": "Bryndal Field Camp", "chunks": [
+    {"chunk_id": "doc-04#c0", "text": "Bryndal Field Camp is a summer-only installation on the Bryndal moraine. It consists of eight prefabricated huts and a generator shed, all of which are removed at the end of each season."},
+    {"chunk_id": "doc-04#c1", "text": "The camp supports periglacial geomorphology, in particular the movement of sorted stone circles on the moraine surface."},
+    {"chunk_id": "doc-04#c2", "text": "The stone circles at Bryndal migrate downslope at a mean rate of 3.4 centimetres per year. The camp operates from June to September."}
+  ]},
+  {"doc_id": "doc-05", "title": "Calloway Reach Hydrology Station", "chunks": [
+    {"chunk_id": "doc-05#c0", "text": "Calloway Reach Hydrology Station was built in 1980 at the outflow of the Calloway river system. It replaced an earlier gauging hut destroyed by flooding in 1977."},
+    {"chunk_id": "doc-05#c1", "text": "The station gauges discharge continuously and samples suspended sediment twice daily during the melt season."},
+    {"chunk_id": "doc-05#c2", "text": "Peak recorded discharge at Calloway Reach is 1,180 cubic metres per second, measured in July 1996. The catchment drains an area of 940 square kilometres."}
+  ]},
+  {"doc_id": "doc-06", "title": "Emberlin Biological Station", "chunks": [
+    {"chunk_id": "doc-06#c0", "text": "Emberlin Biological Station lies at the head of Emberlin Fjord and was founded in 1969 as a joint venture between the Kessner Maritime Trust and three universities."},
+    {"chunk_id": "doc-06#c1", "text": "Its research concentrates on the breeding ecology of the Kessner storm petrel, a seabird that nests only on the archipelago's outer skerries."},
+    {"chunk_id": "doc-06#c2", "text": "The monitored storm petrel colony holds approximately 4,600 breeding pairs. Ringing has been carried out every season since 1974."}
+  ]},
+  {"doc_id": "doc-07", "title": "Fenwick Sound Weather Station", "chunks": [
+    {"chunk_id": "doc-07#c0", "text": "Fenwick Sound Weather Station is an automated installation on a rock stack in the middle of Fenwick Sound. It has been unmanned since 1993."},
+    {"chunk_id": "doc-07#c1", "text": "The station reports pressure, temperature, humidity and wind every 10 minutes over a satellite link, with a backup radio transmitter for use during outages."},
+    {"chunk_id": "doc-07#c2", "text": "The highest wind gust recorded at Fenwick Sound is 187 kilometres per hour, logged in February 2001. Power comes from a bank of 12 solar panels supplemented by a small wind turbine."}
+  ]},
+  {"doc_id": "doc-08", "title": "Grethe Bay Station", "chunks": [
+    {"chunk_id": "doc-08#c0", "text": "Grethe Bay Station was opened in 1985 on the sheltered south side of Grethe Bay. It is the archipelago's principal resupply point, receiving vessels from the mainland four times a year."},
+    {"chunk_id": "doc-08#c1", "text": "Alongside its logistics role the station runs a modest programme in marine chemistry, focused on dissolved oxygen in the bay's deep basin."},
+    {"chunk_id": "doc-08#c2", "text": "The deep basin at Grethe Bay reaches a maximum depth of 312 metres. Fuel storage capacity at the station is 480,000 litres."}
+  ]},
+  {"doc_id": "doc-09", "title": "Halvard Ridge Seismic Array", "chunks": [
+    {"chunk_id": "doc-09#c0", "text": "The Halvard Ridge Seismic Array was installed in 1990 along the spine of Halvard Ridge. It forms part of a wider regional network monitoring the Kessner Fault."},
+    {"chunk_id": "doc-09#c1", "text": "Sensors are buried at a depth of three metres to reduce wind noise, and are linked by armoured cable to a central recording hut."},
+    {"chunk_id": "doc-09#c2", "text": "The array consists of 18 seismometers spaced at 400 metre intervals. The largest event it has recorded on the Kessner Fault had a magnitude of 5.6."}
+  ]},
+  {"doc_id": "doc-10", "title": "Ingerholm Research Station", "chunks": [
+    {"chunk_id": "doc-10#c0", "text": "Ingerholm Research Station stands on the low isthmus joining the two halves of Ingerholm Island. Construction finished in 1976 after a two-year delay caused by unstable ground."},
+    {"chunk_id": "doc-10#c1", "text": "The station studies soil formation on recently deglaciated terrain, maintaining a chronosequence of plots at known distances from the retreating ice front."},
+    {"chunk_id": "doc-10#c2", "text": "The chronosequence comprises 27 plots, the oldest of which was deglaciated around 1890. Plots are resurveyed on a five year cycle."}
+  ]},
+  {"doc_id": "doc-11", "title": "Jorsand Coastal Laboratory", "chunks": [
+    {"chunk_id": "doc-11#c0", "text": "Jorsand Coastal Laboratory was converted from a disused fish processing plant in 1983. Its original cold stores now serve as controlled temperature rooms."},
+    {"chunk_id": "doc-11#c1", "text": "Work at Jorsand centres on the physiology of cold-water invertebrates, with an emphasis on the Kessner brittlestar."},
+    {"chunk_id": "doc-11#c2", "text": "The laboratory holds 9 controlled temperature rooms, the coldest of which is maintained at minus 1.8 degrees Celsius. Seawater is drawn from an intake 40 metres offshore."}
+  ]},
+  {"doc_id": "doc-12", "title": "Kelvinmoor Peat Observatory", "chunks": [
+    {"chunk_id": "doc-12#c0", "text": "Kelvinmoor Peat Observatory was established in 1974 on the blanket bog of the Kelvinmoor plateau. It is the only inland station in the archipelago."},
+    {"chunk_id": "doc-12#c1", "text": "Its programme measures carbon exchange between the bog surface and the atmosphere using eddy covariance towers."},
+    {"chunk_id": "doc-12#c2", "text": "The peat at Kelvinmoor reaches a maximum depth of 7.2 metres. The observatory operates 3 eddy covariance towers across the plateau."}
+  ]},
+  {"doc_id": "doc-13", "title": "Larkspur Shoal Buoy Network", "chunks": [
+    {"chunk_id": "doc-13#c0", "text": "The Larkspur Shoal Buoy Network was deployed in 1997 across the shallow banks south of Larkspur Shoal. It is serviced from Grethe Bay each summer."},
+    {"chunk_id": "doc-13#c1", "text": "Each buoy carries a thermistor chain, a current meter and a surface meteorological package, reporting hourly."},
+    {"chunk_id": "doc-13#c2", "text": "The network comprises 11 buoys. The shallowest bank in the array lies in 24 metres of water."}
+  ]},
+  {"doc_id": "doc-14", "title": "Merrow Deep Mooring Site", "chunks": [
+    {"chunk_id": "doc-14#c0", "text": "Merrow Deep is the deepest point in the Kessner Archipelago and has been occupied by a deep mooring since 1988."},
+    {"chunk_id": "doc-14#c1", "text": "The mooring carries sediment traps at three levels and is recovered and redeployed on an annual cycle."},
+    {"chunk_id": "doc-14#c2", "text": "Merrow Deep has a maximum sounding of 2,740 metres. The deepest sediment trap sits 150 metres above the seabed."}
+  ]},
+  {"doc_id": "doc-15", "title": "Nystrom Glaciological Camp", "chunks": [
+    {"chunk_id": "doc-15#c0", "text": "Nystrom Glaciological Camp occupies a nunatak in the middle of the Nystrom Glacier. Access is by helicopter only."},
+    {"chunk_id": "doc-15#c1", "text": "The camp supports deep ice coring and englacial radar survey along the glacier's central flowline."},
+    {"chunk_id": "doc-15#c2", "text": "The deepest core recovered at Nystrom reached 412 metres. The glacier flows at approximately 68 metres per year at the coring site."}
+  ]},
+  {"doc_id": "doc-16", "title": "Ordvik Magnetic Observatory", "chunks": [
+    {"chunk_id": "doc-16#c0", "text": "Ordvik Magnetic Observatory was founded in 1965 on magnetically quiet ground at the head of Ordvik valley. No ferrous material is permitted within 300 metres of the variometer hut."},
+    {"chunk_id": "doc-16#c1", "text": "The observatory records the three components of the geomagnetic field continuously and contributes to the international observatory network."},
+    {"chunk_id": "doc-16#c2", "text": "Absolute measurements are made 4 times per week. The observatory's declination baseline has drifted by 2.3 degrees since records began."}
+  ]},
+  {"doc_id": "doc-17", "title": "Pellagrin Bird Observatory", "chunks": [
+    {"chunk_id": "doc-17#c0", "text": "Pellagrin Bird Observatory was founded in 1972 on the migration flyway that crosses the southern archipelago. It operates from March to November."},
+    {"chunk_id": "doc-17#c1", "text": "Standardised mist netting is carried out every morning that conditions allow, using a fixed configuration of nets in the same positions each season."},
+    {"chunk_id": "doc-17#c2", "text": "The observatory operates 16 standard mist nets. Its highest single-day ringing total is 1,340 birds, recorded in September 1988."}
+  ]},
+  {"doc_id": "doc-18", "title": "Quarrenden Tide Gauge", "chunks": [
+    {"chunk_id": "doc-18#c0", "text": "The Quarrenden Tide Gauge is the longest continuously operating instrument in the archipelago, in service since 1901."},
+    {"chunk_id": "doc-18#c1", "text": "The original float gauge was replaced by a pressure sensor in 1992, with an overlap period of two years to tie the two records together."},
+    {"chunk_id": "doc-18#c2", "text": "The Quarrenden record shows a mean sea level rise of 1.9 millimetres per year. The mean spring tidal range at the site is 4.1 metres."}
+  ]},
+  {"doc_id": "doc-19", "title": "Rothsay Inlet Station", "chunks": [
+    {"chunk_id": "doc-19#c0", "text": "Rothsay Inlet Station was built in 1978 at the mouth of a fjord that remains ice-covered for much of the year."},
+    {"chunk_id": "doc-19#c1", "text": "The station monitors sea ice thickness and extent using a combination of drill holes, upward-looking sonar and satellite imagery."},
+    {"chunk_id": "doc-19#c2", "text": "Fast ice at Rothsay Inlet reaches a mean maximum thickness of 1.6 metres each winter. The ice-covered season averages 197 days."}
+  ]},
+  {"doc_id": "doc-20", "title": "Sablefort Supply Depot", "chunks": [
+    {"chunk_id": "doc-20#c0", "text": "Sablefort Supply Depot was constructed in 1966 as a forward store for the western stations. It is not staffed permanently."},
+    {"chunk_id": "doc-20#c1", "text": "The depot holds emergency rations, fuel and spare parts, and is inspected twice a year by a team from Vellmar Station."},
+    {"chunk_id": "doc-20#c2", "text": "Sablefort stores emergency rations sufficient for 90 person-days. Its fuel bunker holds 22,000 litres."}
+  ]},
+  {"doc_id": "doc-21", "title": "Tindrel Atmospheric Station", "chunks": [
+    {"chunk_id": "doc-21#c0", "text": "Tindrel Atmospheric Station stands on the summit plateau of Mount Tindrel, the highest permanently occupied site in the archipelago."},
+    {"chunk_id": "doc-21#c1", "text": "The station samples background air for greenhouse gases and aerosols, taking advantage of its exposure to unmodified oceanic air masses."},
+    {"chunk_id": "doc-21#c2", "text": "Tindrel stands at an elevation of 1,240 metres. Air samples are collected in flasks 3 times per week and returned to the mainland for analysis."}
+  ]},
+  {"doc_id": "doc-22", "title": "Ulvang Marine Station", "chunks": [
+    {"chunk_id": "doc-22#c0", "text": "Ulvang Marine Station was opened in 1981 on the sheltered eastern shore of Ulvang Island, close to a persistent kelp forest."},
+    {"chunk_id": "doc-22#c1", "text": "Divers survey fixed quadrats within the kelp forest each summer to track community composition and canopy density."},
+    {"chunk_id": "doc-22#c2", "text": "The station maintains 45 fixed quadrats. The kelp forest covers an area of about 12 hectares."}
+  ]},
+  {"doc_id": "doc-23", "title": "Varenna Point Radar Facility", "chunks": [
+    {"chunk_id": "doc-23#c0", "text": "Varenna Point Radar Facility was commissioned in 1995 to observe the upper atmosphere above the archipelago."},
+    {"chunk_id": "doc-23#c1", "text": "The facility operates a coherent scatter radar, and its data are combined with those of two partner installations on the mainland."},
+    {"chunk_id": "doc-23#c2", "text": "The radar transmits at a frequency of 52 megahertz. Its antenna field covers 3.5 hectares."}
+  ]},
+  {"doc_id": "doc-24", "title": "Wexcombe Station", "chunks": [
+    {"chunk_id": "doc-24#c0", "text": "Wexcombe Station was established in 1987 on a raised beach terrace on the southern coast of Wexcombe Island."},
+    {"chunk_id": "doc-24#c1", "text": "Research at Wexcombe concerns relative sea level history, reconstructed from the flight of raised beaches behind the station."},
+    {"chunk_id": "doc-24#c2", "text": "Eleven raised beaches have been mapped behind the station, the highest standing 68 metres above present sea level."}
+  ]},
+  {"doc_id": "doc-25", "title": "Ythan Ford Gauging Site", "chunks": [
+    {"chunk_id": "doc-25#c0", "text": "The Ythan Ford Gauging Site was established in 1992 at a natural bedrock constriction in the Ythan river."},
+    {"chunk_id": "doc-25#c1", "text": "The bedrock section gives a stable stage-discharge relationship, so the rating curve has needed revision only once since installation."},
+    {"chunk_id": "doc-25#c2", "text": "Mean annual discharge at Ythan Ford is 18.5 cubic metres per second. The gauged catchment covers 310 square kilometres."}
+  ]},
+  {"doc_id": "doc-26", "title": "Zarrow Permafrost Site", "chunks": [
+    {"chunk_id": "doc-26#c0", "text": "The Zarrow Permafrost Site was instrumented in 1986 on a gently sloping terrace above the Zarrow river."},
+    {"chunk_id": "doc-26#c1", "text": "Ground temperature is logged down a cased borehole, and the depth of summer thaw is probed along a fixed transect each September."},
+    {"chunk_id": "doc-26#c2", "text": "The Zarrow borehole extends to a depth of 100 metres. The mean active layer thickness at the site is 82 centimetres."}
+  ]},
+  {"doc_id": "doc-27", "title": "Ambleside Reef Monitoring Site", "chunks": [
+    {"chunk_id": "doc-27#c0", "text": "Ambleside Reef Monitoring Site was set up in 1999 over a cold-water coral reef on the outer shelf."},
+    {"chunk_id": "doc-27#c1", "text": "The reef is surveyed by remotely operated vehicle every second year, following fixed transects marked by acoustic beacons."},
+    {"chunk_id": "doc-27#c2", "text": "The surveyed reef extends over 2.8 kilometres of the shelf edge and lies in water depths between 180 and 340 metres."}
+  ]},
+  {"doc_id": "doc-28", "title": "Brackwater Estuary Laboratory", "chunks": [
+    {"chunk_id": "doc-28#c0", "text": "Brackwater Estuary Laboratory was founded in 1979 beside the largest estuary in the archipelago."},
+    {"chunk_id": "doc-28#c1", "text": "The laboratory studies the mixing of fresh and marine water and its effect on the estuary's invertebrate communities."},
+    {"chunk_id": "doc-28#c2", "text": "The Brackwater estuary has a tidal excursion of 6.5 kilometres. Salinity at the laboratory's intake ranges from 4 to 29 practical salinity units over a tidal cycle."}
+  ]},
+  {"doc_id": "doc-29", "title": "Corvenna Aurora Camp", "chunks": [
+    {"chunk_id": "doc-29#c0", "text": "Corvenna Aurora Camp operates through the dark season only, from October to February, on the Corvenna plateau."},
+    {"chunk_id": "doc-29#c1", "text": "All-sky cameras and a meridian scanning photometer record auroral activity overhead, and the camp coordinates observations with the radar at Varenna Point."},
+    {"chunk_id": "doc-29#c2", "text": "The camp runs 5 all-sky cameras. Its longest continuous run of auroral observations lasted 71 nights."}
+  ]},
+  {"doc_id": "doc-30", "title": "Duneholt Sand Dune Reserve", "chunks": [
+    {"chunk_id": "doc-30#c0", "text": "Duneholt Sand Dune Reserve was designated in 1993 to protect the only extensive dune system in the archipelago."},
+    {"chunk_id": "doc-30#c1", "text": "Dune movement is tracked by repeat survey of a fixed grid, and vegetation is recorded in permanent quadrats on the stabilised inland dunes."},
+    {"chunk_id": "doc-30#c2", "text": "The dune system covers 340 hectares and its highest dune rises 34 metres above the beach. The seaward dune front retreats by roughly 1.2 metres per year."}
+  ]}
+]

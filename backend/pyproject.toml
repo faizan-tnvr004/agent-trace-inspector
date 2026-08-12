@@ -36,7 +36,10 @@ include = ["app*", "adapters*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+# ".." puts the repository root on the path so the harness, evaluation and
+# pr_corpus packages are importable from one test suite. The specification's
+# tree places tests only under backend/, so they are not split per package.
+pythonpath = [".", ".."]
 addopts = "-q"
 filterwarnings = ["ignore::DeprecationWarning"]
 

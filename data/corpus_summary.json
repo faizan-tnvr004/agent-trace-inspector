@@ -1,0 +1,20 @@
+{
+  "runs": 120,
+  "by_workflow": {
+    "rag_qa": 60,
+    "reviewer_pipeline": 60
+  },
+  "successful": 86,
+  "failed": 34,
+  "faulted": 74,
+  "fault_types": {
+    "dropped_retrieval": 15,
+    "truncated_tool_result": 24,
+    "injected_contradiction": 25,
+    "forced_false_rejection": 10
+  },
+  "failed_and_faulted": 33,
+  "total_notional_cost_usd": 0.013509,
+  "total_tokens": 82561,
+  "total_steps": 684
+}

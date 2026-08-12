@@ -1,0 +1,131 @@
+{
+  "corpus": {
+    "runs": 120,
+    "by_workflow": {
+      "rag_qa": 60,
+      "reviewer_pipeline": 60
+    },
+    "successful": 86,
+    "failed": 34,
+    "faulted": 74,
+    "faulted_share": 0.6167,
+    "fault_types": {
+      "dropped_retrieval": 15,
+      "truncated_tool_result": 24,
+      "injected_contradiction": 25,
+      "forced_false_rejection": 10
+    },
+    "failed_and_faulted": 33,
+    "steps_total": 684,
+    "steps_mean": 5.7,
+    "steps_min": 4,
+    "steps_max": 8,
+    "total_notional_cost_usd": 0.013509,
+    "total_tokens": 82561
+  },
+  "fault_potency": {
+    "rag_qa": {
+      "dropped_retrieval": {
+        "injected": 15,
+        "caused_failure": 15,
+        "potency": 1.0
+      },
+      "injected_contradiction": {
+        "injected": 15,
+        "caused_failure": 15,
+        "potency": 1.0
+      },
+      "truncated_tool_result": {
+        "injected": 15,
+        "caused_failure": 2,
+        "potency": 0.1333
+      }
+    },
+    "reviewer_pipeline": {
+      "forced_false_rejection": {
+        "injected": 10,
+        "caused_failure": 0,
+        "potency": 0.0
+      },
+      "injected_contradiction": {
+        "injected": 10,
+        "caused_failure": 1,
+        "potency": 0.1
+      },
+      "truncated_tool_result": {
+        "injected": 9,
+        "caused_failure": 0,
+        "potency": 0.0
+      }
+    }
+  },
+  "heuristic_attribution": {
+    "n": 33,
+    "correct": 11,
+    "accuracy": 0.3333,
+    "no_prediction": 9,
+    "by_fault_type": {
+      "dropped_retrieval": {
+        "n": 15,
+        "correct": 11,
+        "no_prediction": 0,
+        "accuracy": 0.7333
+      },
+      "injected_contradiction": {
+        "n": 16,
+        "correct": 0,
+        "no_prediction": 8,
+        "accuracy": 0.0
+      },
+      "truncated_tool_result": {
+        "n": 2,
+        "correct": 0,
+        "no_prediction": 1,
+        "accuracy": 0.0
+      }
+    }
+  },
+  "rejection_outcomes": {
+    "runs_with_critiques": 60,
+    "all_critiques": {
+      "counts": {
+        "repair": 2,
+        "damage": 1,
+        "no_change": 75,
+        "unclassified": 0
+      },
+      "total": 78,
+      "rates": {
+        "repair": 0.0256,
+        "damage": 0.0128,
+        "no_change": 0.9615
+      }
+    },
+    "rejections_only": {
+      "counts": {
+        "repair": 2,
+        "damage": 1,
+        "no_change": 16,
+        "unclassified": 0
+      },
+      "total": 19,
+      "rates": {
+        "repair": 0.1053,
+        "damage": 0.0526,
+        "no_change": 0.8421
+      }
+    }
+  },
+  "provenance": {
+    "claims_total": 388,
+    "claims_unsupported": 120,
+    "unsupported_share": 0.3093,
+    "runs_with_at_least_one_unsupported_claim": 81,
+    "runs": 120
+  },
+  "determinism": {
+    "runs_checked": 10,
+    "deterministic": true
+  },
+  "wall_clock_seconds": 9.7
+}

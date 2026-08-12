@@ -23,12 +23,14 @@ from app.models import Run, RunSummary, Step
 
 __all__ = [
     "connect",
+    "count_runs",
     "delete_run",
     "get_run",
     "init_db",
     "insert_run",
     "insert_runs",
     "list_runs",
+    "load_corpus_directory",
     "open_db",
     "run_ids",
 ]
@@ -252,6 +254,31 @@ def list_runs(
         for row in rows
     ]
     return items, total
+
+
+def load_corpus_directory(conn: sqlite3.Connection, corpus_dir: str | Path) -> int:
+    """Ingest every ``run_*.json`` in a directory. Returns the number loaded.
+
+    The corpus files are the source of truth and the database is a queryable
+    projection of them, so this is safe to re-run: `insert_run` replaces.
+
+    Only ``run_*.json`` is matched, never ``*.json``. Sibling files such as the
+    generation summary are not traces and would fail validation.
+    """
+    directory = Path(corpus_dir)
+    if not directory.is_dir():
+        return 0
+
+    loaded = 0
+    for path in sorted(directory.glob("run_*.json")):
+        run = Run.model_validate(json.loads(path.read_text()))
+        insert_run(conn, run)
+        loaded += 1
+    return loaded
+
+
+def count_runs(conn: sqlite3.Connection) -> int:
+    return conn.execute("SELECT COUNT(*) AS n FROM runs").fetchone()["n"]
 
 
 def run_ids(conn: sqlite3.Connection) -> list[str]:

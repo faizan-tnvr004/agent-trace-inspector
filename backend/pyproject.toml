@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trace-inspector"
+version = "0.1.0"
+description = "Multi-agent execution trace inspector: schema, extraction engine and API"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Faizan Tanveer" }]
+
+dependencies = [
+    "fastapi>=0.110",
+    "pydantic>=2.6",
+    "uvicorn[standard]>=0.27",
+    "jsonschema>=4.21",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+# Embedding model for evidence survival and claim linking. CPU only; adding a
+# GPU dependency is explicitly forbidden by the specification.
+extraction = ["sentence-transformers>=2.7", "numpy>=1.26"]
+
+# Workflow harness and evaluation judge. LangGraph is mandatory even where plain
+# functions would do, because the workflow being an explicit state machine is
+# itself a requirement.
+harness = ["langgraph>=0.2", "google-genai>=1.0"]
+
+dev = ["pytest>=8", "pytest-cov>=5", "httpx>=0.27"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*", "adapters*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["app/extraction"]
+branch = true
+
+[tool.coverage.report]
+# NFR-9 requires >=70% coverage on the extraction module.
+fail_under = 70
+show_missing = true

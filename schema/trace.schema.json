@@ -1,0 +1,306 @@
+{
+  "$defs": {
+    "ErrorInfo": {
+      "description": "An exception recorded against a step.\n\nThe specification names this field but does not define its shape beyond\n\"exception type and message\" (SRS 7.2).",
+      "properties": {
+        "error_type": {
+          "title": "Error Type",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "error_type",
+        "message"
+      ],
+      "title": "ErrorInfo",
+      "type": "object"
+    },
+    "InjectedFault": {
+      "description": "A deliberate defect introduced to create known ground truth.\n\n``target_step_seq`` is the ground truth that failure attribution is scored\nagainst in the primary evaluation.",
+      "properties": {
+        "fault_type": {
+          "enum": [
+            "dropped_retrieval",
+            "truncated_tool_result",
+            "forced_false_rejection",
+            "injected_contradiction"
+          ],
+          "title": "Fault Type",
+          "type": "string"
+        },
+        "target_step_seq": {
+          "title": "Target Step Seq",
+          "type": "integer"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fault_type",
+        "target_step_seq",
+        "description"
+      ],
+      "title": "InjectedFault",
+      "type": "object"
+    },
+    "Step": {
+      "description": "One recorded event within a trace.",
+      "properties": {
+        "step_id": {
+          "title": "Step Id",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "parent_step_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Step Id"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "agent_id": {
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "agent_role": {
+          "title": "Agent Role",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "event_type": {
+          "enum": [
+            "plan",
+            "tool_call",
+            "tool_result",
+            "retrieval",
+            "reasoning",
+            "critique",
+            "revision",
+            "decision",
+            "error",
+            "retry",
+            "final"
+          ],
+          "title": "Event Type",
+          "type": "string"
+        },
+        "input": {
+          "title": "Input",
+          "type": "string"
+        },
+        "output": {
+          "title": "Output",
+          "type": "string"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "latency_ms": {
+          "minimum": 0,
+          "title": "Latency Ms",
+          "type": "integer"
+        },
+        "prompt_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Prompt Tokens",
+          "type": "integer"
+        },
+        "completion_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Completion Tokens",
+          "type": "integer"
+        },
+        "cost_usd": {
+          "default": 0.0,
+          "minimum": 0.0,
+          "title": "Cost Usd",
+          "type": "number"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ErrorInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "retry_of": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retry Of"
+        },
+        "rejection_outcome": {
+          "anyOf": [
+            {
+              "enum": [
+                "repair",
+                "damage",
+                "no_change"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rejection Outcome"
+        }
+      },
+      "required": [
+        "step_id",
+        "run_id",
+        "seq",
+        "agent_id",
+        "agent_role",
+        "model",
+        "event_type",
+        "input",
+        "output",
+        "timestamp",
+        "latency_ms"
+      ],
+      "title": "Step",
+      "type": "object"
+    }
+  },
+  "description": "The complete recorded sequence of a single agent run.",
+  "properties": {
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "workflow_type": {
+      "enum": [
+        "reviewer_pipeline",
+        "rag_qa",
+        "imported"
+      ],
+      "title": "Workflow Type",
+      "type": "string"
+    },
+    "workflow_version": {
+      "title": "Workflow Version",
+      "type": "string"
+    },
+    "task_input": {
+      "title": "Task Input",
+      "type": "string"
+    },
+    "final_output": {
+      "title": "Final Output",
+      "type": "string"
+    },
+    "success": {
+      "title": "Success",
+      "type": "boolean"
+    },
+    "ground_truth": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ground Truth"
+    },
+    "injected_fault": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InjectedFault"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "total_cost_usd": {
+      "default": 0.0,
+      "minimum": 0.0,
+      "title": "Total Cost Usd",
+      "type": "number"
+    },
+    "total_tokens": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Total Tokens",
+      "type": "integer"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "title": "Steps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "run_id",
+    "workflow_type",
+    "workflow_version",
+    "task_input",
+    "final_output",
+    "success",
+    "started_at",
+    "completed_at"
+  ],
+  "title": "Run",
+  "type": "object"
+}

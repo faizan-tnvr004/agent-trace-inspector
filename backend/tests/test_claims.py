@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from app.extraction.claims import (
     EVIDENCE_SIMILARITY_THRESHOLD,
     analyse_claims,

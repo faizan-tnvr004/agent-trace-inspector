@@ -44,53 +44,63 @@ fault labels are removed from the text.
 
 ### Primary study
 
-Population: 30 failed runs carrying a known injected fault. Judge:
-`gemini-3.1-flash-lite`, temperature 0, identical prompt in both conditions.
+Population: all 31 failed runs carrying a known injected fault, with **no
+exclusions**. Judge: `gemini-3.1-flash-lite`, temperature 0, identical prompt in
+both conditions.
 
 | Condition | n | correct | accuracy | mean input tokens | median input tokens | mean latency |
 |---|---|---|---|---|---|---|
-| **raw_log** | 30 | 19 | **63.3%** | 2,836 | 2,810 | 928 ms |
-| **extracted** | 30 | 19 | **63.3%** | 1,420 | 1,380 | 904 ms |
+| **raw_log** | 31 | 18 | **58.1%** | 2,879 | 2,774 | 1,177 ms |
+| **extracted** | 31 | 19 | **61.3%** | 1,445 | 1,366 | 1,151 ms |
 
-Input token reduction: **49.9%**. No judge response was unparseable in either
+Input token reduction: **49.8%**. No judge response was unparseable in either
 condition.
 
-Agreement pattern: both conditions correct on 17 runs, both wrong on 9, and the
-disagreements split evenly, two each way.
+Agreement pattern: both conditions correct on 15 runs, both wrong on 9, and the
+disagreements nearly even — 4 that only extraction got and 3 that only the raw
+log got.
 
 Per fault type:
 
 | Fault type | raw_log | extracted |
 |---|---|---|
 | dropped_retrieval | 11/15 | 11/15 |
-| injected_contradiction | 6/13 | 7/13 |
+| injected_contradiction | 5/14 | 7/14 |
 | truncated_tool_result | 2/2 | 1/2 |
 
-Three of the 33 eligible runs were **excluded because their trace still named
-the injected fault after blinding**. The corpus was generated while the injected
-chunk carried the id `injected-contradiction`, and although that string is
-substituted out, an agent that read it can paraphrase it into its own prose: one
-run's final answer says *"corrected by the injection notice"*, which no literal
-substitution catches. A judge shown that text can locate the faulted step
-without reading the trace. Exclusion is decided from the trace text alone,
-independently of what the judge answered, and removes a run from both conditions
-together, so it cannot favour either. `harness/faults.py` no longer produces the
-self-labelling id; the exclusion exists because the committed corpus predates
-that fix. Rerun with `--include-compromised` to see the contaminated figures
-(63.6% against 60.6%, n=33), which is what the leak was worth.
-
-**This is a null result, and it is reported as the finding.** The two conditions
-scored *identically*: 19 of 30 each. They disagree on only four runs, two in each
-direction. What extraction achieved is a halving of the material presented for no
-measurable change in accuracy, which is a weaker claim than the hypothesis but
-not a negative one: the same conclusion is reachable from half the reading.
+**This is a null result, and it is reported as the finding.** Extraction is one
+run ahead of the raw log out of 31. Seven runs separate the two conditions in
+either direction, four to three, which is what a coin looks like at this sample
+size; the difference carries no weight and is not claimed as an effect. What
+extraction did achieve is a halving of the material presented for no measurable
+change in accuracy. That is weaker than the hypothesis but not a negative
+result: the same conclusion is reachable from half the reading.
 
 The most likely explanations, in order of how much we can support them. Traces
 in this corpus are short — mean 5.7 steps, range 4 to 8 — so a top-5 extraction
 is frequently not a subset but a reformatting of the whole trace. A judge that
-reads 2,855 tokens without difficulty is also not the length-limited reader the
+reads 2,879 tokens without difficulty is also not the length-limited reader the
 hypothesis is about. Both point the same way: the study as run tests the
 *presentation* of a short trace more than the *pruning* of a long one.
+
+An earlier version of this table read 63.3% against 63.3% at n=30, and reached
+it by **excluding three of 33 runs whose traces still named the injected fault
+after blinding**. That corpus was generated while the injected chunk carried the
+id `injected-contradiction`; the string is substituted out, but an agent that
+read it can paraphrase it into its own prose, and one run's final answer said
+*"corrected by the injection notice"* — which no literal substitution catches. A
+judge shown that text can locate the faulted step without reading the trace. The
+fix was to stop generating the label rather than to filter it afterwards: the
+chunk is now a neutral `doc-47`, the RAG half of the corpus was regenerated, and
+the leak check reports zero compromised runs, so the study runs on its whole
+eligible population. The exclusion path remains in the code as a guard, and
+`--include-compromised` disables it, but it now excludes nothing.
+
+Removing the label was not free, and the cost is visible in the numbers above.
+Both conditions score lower than they did on the leaky corpus, and the injected
+contradiction fault lost two of its fifteen failures (see *Fault potency*). A
+self-announcing fault is both easier to attribute and more potent, which is
+exactly why it had to go.
 
 ### Extraction engine, measured independently of the judge
 
@@ -99,11 +109,11 @@ The tool's own heuristic attribution, which uses no LLM at all:
 | Fault type | correct | accuracy |
 |---|---|---|
 | dropped_retrieval | 11/15 | 73.3% |
-| injected_contradiction | 0/16 | 0.0% |
+| injected_contradiction | 0/14 | 0.0% |
 | truncated_tool_result | 0/2 | 0.0% |
-| **overall** | **11/33** | **33.3%** |
+| **overall** | **11/31** | **35.5%** |
 
-Nine of the 33 produced no prediction at all. The 0% on injected contradictions
+Seven of the 31 produced no prediction at all. The 0% on injected contradictions
 is a real gap rather than a tuning problem: the specified rule set scores
 missing, empty, thin and erroring steps, and a retrieval that returns a full set
 of plausible chunks — one of which happens to contradict the others — matches
@@ -119,11 +129,17 @@ no failed run to attribute.
 | Workflow | Fault type | Caused failure | Potency |
 |---|---|---|---|
 | rag_qa | dropped_retrieval | 15/15 | 100% |
-| rag_qa | injected_contradiction | 15/15 | 100% |
+| rag_qa | injected_contradiction | 13/15 | 87% |
 | rag_qa | truncated_tool_result | 2/15 | 13% |
 | reviewer_pipeline | injected_contradiction | 1/10 | 10% |
 | reviewer_pipeline | forced_false_rejection | 0/10 | 0% |
 | reviewer_pipeline | truncated_tool_result | 0/9 | 0% |
+
+Injected contradictions in `rag_qa` were 100% potent in an earlier corpus, when
+the injected chunk carried the id `injected-contradiction`. Renaming it to a
+neutral `doc-47` cost the fault two of its fifteen failures: an agent that can
+see a chunk announcing itself as an injection treats it as authoritative more
+readily than one that cannot. The fault is weaker now, and the number is honest.
 
 The reviewer pipeline is close to immune to injected faults, and inspection of
 the traces shows why: the reviewer catches the corrupted answer and the revision
@@ -154,8 +170,8 @@ reviewing — in a fresh setting with different tasks and a different model.
 
 ### Provenance
 
-Across all 120 runs, **84 of 329 claims (25.5%) have no supporting step**,
-affecting 60 of 120 runs. Support means an upstream step produced closely
+Across all 120 runs, **89 of 335 claims (26.6%) have no supporting step**,
+affecting 65 of 120 runs. Support means an upstream step produced closely
 matching text; it is a statement about grounding, not about truth.
 
 An earlier version of this figure was 120 of 388 (30.9%) and was inflated.
@@ -170,8 +186,8 @@ not move with the data.
 
 ### Corpus
 
-120 runs, 60 per workflow, 684 steps, 82,561 tokens. 74 runs (62%) carry an
-injected fault, spread across all four types. 33 runs both failed and carry a
+120 runs, 60 per workflow, 684 steps, 82,601 tokens. 74 runs (62%) carry an
+injected fault, spread across all four types. 31 runs both failed and carry a
 known fault, which is the evaluation population.
 
 ## 4. Reviewer leniency toward agent-authored code
@@ -257,11 +273,11 @@ as prose while condition A renders as JSON, so format and length vary together
 and cannot be separated. A corpus of long traces would test the actual
 hypothesis; this one does not.
 
-**n = 30, single judge, single run.** No significance is claimed and none should
-be read in. With the conditions tied at 19 of 30 and disagreeing on four runs,
-nothing here separates them.
+**n = 31, single judge, single run.** No significance is claimed and none should
+be read in. The conditions differ by one run out of 31 and disagree on seven,
+four to three; nothing here separates them.
 
-**The LLM judge may not proxy a human reader.** A judge that consumes 2,855
+**The LLM judge may not proxy a human reader.** A judge that consumes 2,879
 tokens without effort is not the length-limited reader the research question is
 about. The SRS anticipated hand-checking a subsample; that has not been done.
 
@@ -334,7 +350,7 @@ Or, on a machine with Docker:
 make up
 ```
 
-Run the tests (210 tests; 94.6% coverage on the extraction module):
+Run the tests (230 tests; 94.7% coverage on the extraction module):
 
 ```bash
 make test
@@ -355,7 +371,18 @@ make eval
 ```
 
 Both are throttled for the free tier and checkpoint after every run, so a run
-interrupted by a daily quota limit resumes where it stopped.
+interrupted by a daily quota limit resumes where it stopped. The judge's answers
+are committed alongside the summary in
+[evaluation/results](evaluation/results), so `make reproduce` rebuilds the
+published table from that record without spending quota; delete the trials file
+to rejudge from scratch.
+
+`make eval` pins the judge to the model named in the results table rather than
+reading it from `.env`, and a study cut short by a quota wall is written to a
+`_partial` file rather than over a complete one. Both guards exist because the
+opposite happened: a rerun picked up a 20-per-day model from a local `.env`,
+stopped at 11 of 31, and overwrote a finished study with the partial figures
+while reporting success.
 
 ## Licence
 

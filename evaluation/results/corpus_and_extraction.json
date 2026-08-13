@@ -5,8 +5,8 @@
       "rag_qa": 60,
       "reviewer_pipeline": 60
     },
-    "successful": 86,
-    "failed": 34,
+    "successful": 88,
+    "failed": 32,
     "faulted": 74,
     "faulted_share": 0.6167,
     "fault_types": {
@@ -15,13 +15,13 @@
       "injected_contradiction": 25,
       "forced_false_rejection": 10
     },
-    "failed_and_faulted": 33,
+    "failed_and_faulted": 31,
     "steps_total": 684,
     "steps_mean": 5.7,
     "steps_min": 4,
     "steps_max": 8,
-    "total_notional_cost_usd": 0.013509,
-    "total_tokens": 82561
+    "total_notional_cost_usd": 0.013516,
+    "total_tokens": 82601
   },
   "fault_potency": {
     "rag_qa": {
@@ -32,8 +32,8 @@
       },
       "injected_contradiction": {
         "injected": 15,
-        "caused_failure": 15,
-        "potency": 1.0
+        "caused_failure": 13,
+        "potency": 0.8667
       },
       "truncated_tool_result": {
         "injected": 15,
@@ -60,10 +60,10 @@
     }
   },
   "heuristic_attribution": {
-    "n": 33,
+    "n": 31,
     "correct": 11,
-    "accuracy": 0.3333,
-    "no_prediction": 9,
+    "accuracy": 0.3548,
+    "no_prediction": 7,
     "by_fault_type": {
       "dropped_retrieval": {
         "n": 15,
@@ -72,9 +72,9 @@
         "accuracy": 0.7333
       },
       "injected_contradiction": {
-        "n": 16,
+        "n": 14,
         "correct": 0,
-        "no_prediction": 8,
+        "no_prediction": 6,
         "accuracy": 0.0
       },
       "truncated_tool_result": {
@@ -117,15 +117,15 @@
     }
   },
   "provenance": {
-    "claims_total": 329,
-    "claims_unsupported": 84,
-    "unsupported_share": 0.2553,
-    "runs_with_at_least_one_unsupported_claim": 60,
+    "claims_total": 335,
+    "claims_unsupported": 89,
+    "unsupported_share": 0.2657,
+    "runs_with_at_least_one_unsupported_claim": 65,
     "runs": 120
   },
   "determinism": {
     "runs_checked": 10,
     "deterministic": true
   },
-  "wall_clock_seconds": 9.6
+  "wall_clock_seconds": 14.7
 }

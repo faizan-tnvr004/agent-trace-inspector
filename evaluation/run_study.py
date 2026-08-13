@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import statistics
 import sys
 import time
@@ -147,14 +148,50 @@ SERIALISERS = {
 # ---------------------------------------------------------------------------
 
 
-def load_population(corpus_dir: Path) -> list[Run]:
-    """Failed runs with a known injected fault, in a stable order."""
-    runs = []
+#: Any occurrence of this in a serialised trace means the fault is still
+#: identifiable by name rather than by reasoning. Substring blinding removes the
+#: exact chunk id, but an agent that *read* that id can paraphrase it into its
+#: own prose — one run's final answer says "corrected by the injection notice",
+#: which no literal substitution catches. A judge shown that text can locate the
+#: faulted step without inspecting the trace at all.
+_FAULT_RESIDUE = re.compile(r"inject", re.IGNORECASE)
+
+
+def is_compromised(run: Run) -> bool:
+    """True if either condition would still name the fault to the judge.
+
+    Checked against the *blinded* serialisations, so this catches only what
+    survives blinding. The test is on the trace text and is independent of what
+    the judge answered, and it excludes a run from both conditions together, so
+    it cannot favour either one.
+    """
+    return bool(
+        _FAULT_RESIDUE.search(serialise_raw_log(run))
+        or _FAULT_RESIDUE.search(serialise_extracted(run))
+    )
+
+
+def load_population(
+    corpus_dir: Path, *, exclude_compromised: bool = True
+) -> tuple[list[Run], list[Run]]:
+    """Failed runs with a known injected fault, in a stable order.
+
+    Returns ``(population, excluded)``. Runs whose trace still names the injected
+    fault after blinding are excluded by default: leaving them in measures how
+    well a judge can read a label, not how well it can read a trace.
+    """
+    eligible = []
     for path in sorted(corpus_dir.glob("run_*.json")):
         run = Run.model_validate(json.loads(path.read_text()))
         if not run.success and run.injected_fault is not None:
-            runs.append(run)
-    return runs
+            eligible.append(run)
+
+    if not exclude_compromised:
+        return eligible, []
+
+    excluded = [run for run in eligible if is_compromised(run)]
+    excluded_ids = {run.run_id for run in excluded}
+    return [r for r in eligible if r.run_id not in excluded_ids], excluded
 
 
 def summarise(trials: list[dict[str, Any]]) -> dict[str, Any]:
@@ -205,11 +242,25 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="ignore the checkpoint and judge every run again",
     )
+    parser.add_argument(
+        "--include-compromised",
+        action="store_true",
+        help="keep runs whose trace still names the injected fault after "
+        "blinding (reported for comparison only; not a valid primary result)",
+    )
     args = parser.parse_args(argv)
 
-    population = load_population(args.corpus)
+    population, excluded = load_population(
+        args.corpus, exclude_compromised=not args.include_compromised
+    )
     if args.limit:
         population = population[: args.limit]
+    if excluded:
+        print(
+            f"Excluded {len(excluded)} run(s) whose trace still names the "
+            "injected fault after blinding; they would measure label-reading, "
+            "not trace-reading."
+        )
 
     if not population:
         print(
@@ -251,10 +302,15 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             row = json.loads(line)
             trials[row["condition"]].append(row)
+        population_ids = {r.run_id for r in population}
         complete = {
             row["run_id"]
             for row in trials[CONDITIONS[0]]
             if row["run_id"] in {r["run_id"] for r in trials[CONDITIONS[1]]}
+            # A checkpointed trial for a run no longer in the population must
+            # not be counted; otherwise excluding a run would leave its result
+            # in the summary.
+            and row["run_id"] in population_ids
         }
         done_run_ids = complete
         # Drop any half-finished run so it is retried as a pair, keeping the two
@@ -368,6 +424,14 @@ def main(argv: list[str] | None = None) -> int:
         # population if a free-tier daily quota was reached.
         "n": judged,
         "eligible_population": len(population),
+        "excluded_compromised": [
+            {
+                "run_id": r.run_id,
+                "fault_type": r.injected_fault.fault_type if r.injected_fault else None,
+                "reason": "trace still names the injected fault after blinding",
+            }
+            for r in excluded
+        ],
         "population_complete": judged >= len(population),
         "stopped_early_on_quota": quota_exhausted,
         "judge_model": "stub" if args.stub_llm else args.model,

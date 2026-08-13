@@ -117,15 +117,15 @@
     }
   },
   "provenance": {
-    "claims_total": 388,
-    "claims_unsupported": 120,
-    "unsupported_share": 0.3093,
-    "runs_with_at_least_one_unsupported_claim": 81,
+    "claims_total": 329,
+    "claims_unsupported": 84,
+    "unsupported_share": 0.2553,
+    "runs_with_at_least_one_unsupported_claim": 60,
     "runs": 120
   },
   "determinism": {
     "runs_checked": 10,
     "deterministic": true
   },
-  "wall_clock_seconds": 9.7
+  "wall_clock_seconds": 9.6
 }

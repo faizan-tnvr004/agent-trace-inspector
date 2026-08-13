@@ -57,6 +57,44 @@ def test_split_claims_on_empty_output() -> None:
     assert split_claims("") == []
 
 
+@pytest.mark.parametrize(
+    "fragment",
+    [
+        "Support: [doc-04#c2]",
+        "1962 (supported by [doc-01#c0])",
+        "4,600 ([doc-06#c2])",
+        "10 (supported by [doc-07#c1])",
+        "Passage identifier: [doc-12#c2]",
+    ],
+)
+def test_citation_fragments_are_not_claims(fragment: str) -> None:
+    """Citation markup is not an assertion.
+
+    Models answer with sentence-shaped fragments that only cite a source. They
+    embed poorly against any step output, so counting them as claims marked them
+    unsupported and inflated the ungrounded-claim rate from 25.5% to 30.9%.
+    Eighteen such fragments in the corpus cited a source while being labelled
+    unsupported, which is self-contradictory on its face.
+    """
+    assert split_claims(fragment) == []
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "The basin is deep.",
+        "It reaches 312 metres.",
+        "The station was established in 1962 by the Trust.",
+        "The context does not contain the answer.",
+    ],
+)
+def test_real_sentences_survive_the_citation_filter(sentence: str) -> None:
+    """The filter must not eat genuine short assertions. An earlier version
+    stripped ordinary words such as "the" and "in" before measuring substance,
+    which discarded real claims."""
+    assert len(split_claims(sentence)) == 1
+
+
 def test_split_claims_splits_multiline_working() -> None:
     text = (
         "Morning sales were 24 loaves in total.\n"

@@ -50,10 +50,45 @@ _SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+(?=[A-Z(\[])")
 
 # Lines the models emit as scaffolding rather than as assertions.
 _SCAFFOLD = re.compile(
-    r"^\s*(answer|expression|verdict|working|plan)\s*:\s*", re.IGNORECASE
+    r"^\s*(answer|expression|verdict|working|plan|support|sources?|"
+    r"passage identifier|reference)s?\s*:\s*",
+    re.IGNORECASE,
 )
 
 _MIN_CLAIM_CHARS = 12
+
+# Bracketed corpus citations, e.g. "[doc-08#c2]".
+_CITATION = re.compile(r"\[[^\]]*\]")
+
+# Phrases that only introduce a citation and assert nothing themselves. Kept
+# deliberately narrow: including ordinary words such as "the" or "in" would
+# shrink genuine sentences below the substance threshold and discard real claims.
+_CITATION_WORDS = re.compile(
+    r"\b(supported\s+by|support|sources?|passage\s+identifier|identifier)\b",
+    re.IGNORECASE,
+)
+
+# A claim must retain this many letters once citation markup is removed.
+_MIN_SUBSTANCE_CHARS = 12
+
+
+def _is_citation_fragment(text: str) -> bool:
+    """True for text that carries no proposition once its citations are removed.
+
+    Models answer with fragments such as ``Support: [doc-04#c2]`` and
+    ``1962 (supported by [doc-01#c0])``. These are citation markup, not
+    assertions, but they are sentence-shaped and embed poorly against any step
+    output, so counting them as claims marks them unsupported and inflates the
+    ungrounded-claim rate. Eighteen such fragments in this corpus cited a source
+    while being labelled unsupported, which is self-contradictory on its face.
+
+    The test is structural, not a similarity threshold: strip the citations and
+    the words that only introduce them, and see whether any assertion is left.
+    """
+    stripped = _CITATION.sub(" ", text)
+    stripped = _CITATION_WORDS.sub(" ", stripped)
+    letters = re.sub(r"[^A-Za-z]", "", stripped)
+    return len(letters) < _MIN_SUBSTANCE_CHARS
 
 
 def _sentences(text: str) -> list[str]:
@@ -71,7 +106,11 @@ def _sentences(text: str) -> list[str]:
         if not line:
             continue
         out.extend(part.strip() for part in _SENTENCE_BOUNDARY.split(line))
-    return [s for s in out if len(s) >= _MIN_CLAIM_CHARS]
+    return [
+        s
+        for s in out
+        if len(s) >= _MIN_CLAIM_CHARS and not _is_citation_fragment(s)
+    ]
 
 
 def split_claims(

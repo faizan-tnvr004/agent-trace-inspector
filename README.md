@@ -44,35 +44,46 @@ fault labels are removed from the text.
 
 ### Primary study
 
-Population: all 33 failed runs carrying a known injected fault. Judge:
+Population: 30 failed runs carrying a known injected fault. Judge:
 `gemini-3.1-flash-lite`, temperature 0, identical prompt in both conditions.
 
 | Condition | n | correct | accuracy | mean input tokens | median input tokens | mean latency |
 |---|---|---|---|---|---|---|
-| **raw_log** | 33 | 21 | **63.6%** | 2,855 | 2,822 | 932 ms |
-| **extracted** | 33 | 20 | **60.6%** | 1,443 | 1,395 | 891 ms |
+| **raw_log** | 30 | 19 | **63.3%** | 2,836 | 2,810 | 928 ms |
+| **extracted** | 30 | 19 | **63.3%** | 1,420 | 1,380 | 904 ms |
 
-Input token reduction: **49.5%**. No judge response was unparseable in either
+Input token reduction: **49.9%**. No judge response was unparseable in either
 condition.
 
-Agreement pattern: both conditions correct on 18 runs, both wrong on 10,
-raw-log-only correct on 3, extracted-only correct on 2.
+Agreement pattern: both conditions correct on 17 runs, both wrong on 9, and the
+disagreements split evenly, two each way.
 
 Per fault type:
 
 | Fault type | raw_log | extracted |
 |---|---|---|
 | dropped_retrieval | 11/15 | 11/15 |
-| injected_contradiction | 8/16 | 8/16 |
+| injected_contradiction | 6/13 | 7/13 |
 | truncated_tool_result | 2/2 | 1/2 |
 
-**This is a null result, and it is reported as the finding.** Extracted
-summaries did not improve attribution accuracy. The difference of one run out of
-33 is well inside noise, and the two conditions disagree on only five runs in
-total, splitting three to two. What extraction did achieve is a halving of the
-material presented for no measurable loss of accuracy, which is a weaker claim
-than the hypothesis but not a negative one: the same conclusion is reachable
-from half the reading.
+Three of the 33 eligible runs were **excluded because their trace still named
+the injected fault after blinding**. The corpus was generated while the injected
+chunk carried the id `injected-contradiction`, and although that string is
+substituted out, an agent that read it can paraphrase it into its own prose: one
+run's final answer says *"corrected by the injection notice"*, which no literal
+substitution catches. A judge shown that text can locate the faulted step
+without reading the trace. Exclusion is decided from the trace text alone,
+independently of what the judge answered, and removes a run from both conditions
+together, so it cannot favour either. `harness/faults.py` no longer produces the
+self-labelling id; the exclusion exists because the committed corpus predates
+that fix. Rerun with `--include-compromised` to see the contaminated figures
+(63.6% against 60.6%, n=33), which is what the leak was worth.
+
+**This is a null result, and it is reported as the finding.** The two conditions
+scored *identically*: 19 of 30 each. They disagree on only four runs, two in each
+direction. What extraction achieved is a halving of the material presented for no
+measurable change in accuracy, which is a weaker claim than the hypothesis but
+not a negative one: the same conclusion is reachable from half the reading.
 
 The most likely explanations, in order of how much we can support them. Traces
 in this corpus are short — mean 5.7 steps, range 4 to 8 — so a top-5 extraction
@@ -143,9 +154,19 @@ reviewing — in a fresh setting with different tasks and a different model.
 
 ### Provenance
 
-Across all 120 runs, **120 of 388 claims (30.9%) have no supporting step**,
-affecting 81 of 120 runs. Support means an upstream step produced closely
+Across all 120 runs, **84 of 329 claims (25.5%) have no supporting step**,
+affecting 60 of 120 runs. Support means an upstream step produced closely
 matching text; it is a statement about grounding, not about truth.
+
+An earlier version of this figure was 120 of 388 (30.9%) and was inflated.
+Sentence splitting was treating citation markup as claims: fragments such as
+`Support: [doc-04#c2]` and `1962 (supported by [doc-01#c0])` are sentence-shaped
+but assert nothing, embed poorly against any step output, and were therefore
+counted as ungrounded. Eighteen of them cited a source while being labelled
+unsupported, which is self-contradictory on its face. Claim splitting now
+discards a fragment that carries no proposition once its citation markup is
+removed. The test is structural rather than a similarity threshold, so it does
+not move with the data.
 
 ### Corpus
 
@@ -236,8 +257,9 @@ as prose while condition A renders as JSON, so format and length vary together
 and cannot be separated. A corpus of long traces would test the actual
 hypothesis; this one does not.
 
-**n = 33, single judge, single run.** No significance is claimed and none should
-be read in. A three-percentage-point gap on 33 items is noise.
+**n = 30, single judge, single run.** No significance is claimed and none should
+be read in. With the conditions tied at 19 of 30 and disagreeing on four runs,
+nothing here separates them.
 
 **The LLM judge may not proxy a human reader.** A judge that consumes 2,855
 tokens without effort is not the length-limited reader the research question is
@@ -255,8 +277,10 @@ present in the corpus.
 **Claims are sentences, not propositions.** Sentence-level splitting is a
 deliberate fallback: semantic claim extraction is unreliable and would require an
 LLM in a path that must stay deterministic. A sentence carrying two assertions
-counts as one claim, and a very short claim can be marked unsupported simply
-because short text embeds poorly.
+counts as one claim, and a short claim can still be marked unsupported simply
+because short text embeds poorly. Citation-only fragments are now discarded
+before claims are counted, but the underlying weakness of matching short text by
+embedding remains.
 
 **Gemini replaces the pinned `anthropic` SDK.** This is a documented deviation
 from the specified stack, made on the repository owner's instruction. Free-tier

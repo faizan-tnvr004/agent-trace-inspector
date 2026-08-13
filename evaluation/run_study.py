@@ -200,6 +200,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="smoke-test the pipeline without a key; results are meaningless",
     )
+    parser.add_argument(
+        "--restart",
+        action="store_true",
+        help="ignore the checkpoint and judge every run again",
+    )
     args = parser.parse_args(argv)
 
     population = load_population(args.corpus)
@@ -227,39 +232,97 @@ def main(argv: list[str] | None = None) -> int:
         f"prompt in both conditions.\n"
     )
 
-    trials: dict[str, list[dict[str, Any]]] = {c: [] for c in CONDITIONS}
-    started = time.monotonic()
+    # Trials are checkpointed after every run and reloaded on start. Free-tier
+    # daily quotas are small enough that a full population may not fit in one
+    # day, and losing a completed half of the study to a quota wall would mean
+    # re-spending quota that had already been paid.
+    # The checkpoint name carries the judge model. The study requires one judge
+    # across the whole population, and resuming a run started under a different
+    # model would silently blend two judges into one accuracy figure.
+    judge_id = "stub" if args.stub_llm else args.model
+    checkpoint = args.out / f"primary_study_trials_{judge_id}.jsonl"
+    args.out.mkdir(parents=True, exist_ok=True)
 
-    for index, run in enumerate(population, start=1):
-        assert run.injected_fault is not None
-        actual = run.injected_fault.target_step_seq
-        row = []
+    trials: dict[str, list[dict[str, Any]]] = {c: [] for c in CONDITIONS}
+    done_run_ids: set[str] = set()
+    if checkpoint.exists() and not args.restart:
+        for line in checkpoint.read_text().splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            trials[row["condition"]].append(row)
+        complete = {
+            row["run_id"]
+            for row in trials[CONDITIONS[0]]
+            if row["run_id"] in {r["run_id"] for r in trials[CONDITIONS[1]]}
+        }
+        done_run_ids = complete
+        # Drop any half-finished run so it is retried as a pair, keeping the two
+        # conditions on exactly the same population.
         for condition in CONDITIONS:
-            trace_text = SERIALISERS[condition](run)
-            verdict = ask_judge(client, trace_text)
-            correct = verdict.predicted_seq == actual
-            trials[condition].append(
-                {
-                    "run_id": run.run_id,
-                    "workflow_type": run.workflow_type,
-                    "fault_type": run.injected_fault.fault_type,
-                    "actual_seq": actual,
-                    "predicted_seq": verdict.predicted_seq,
-                    "correct": correct,
-                    "prompt_tokens": verdict.prompt_tokens,
-                    "latency_ms": verdict.latency_ms,
-                    "raw_response": verdict.raw_response[:120],
-                }
+            trials[condition] = [
+                row for row in trials[condition] if row["run_id"] in done_run_ids
+            ]
+        if done_run_ids:
+            print(f"Resuming: {len(done_run_ids)} run(s) already judged.\n")
+
+    started = time.monotonic()
+    quota_exhausted = False
+
+    with checkpoint.open("a") as handle:
+        for index, run in enumerate(population, start=1):
+            assert run.injected_fault is not None
+            if run.run_id in done_run_ids:
+                continue
+            actual = run.injected_fault.target_step_seq
+
+            pending: list[dict[str, Any]] = []
+            try:
+                for condition in CONDITIONS:
+                    trace_text = SERIALISERS[condition](run)
+                    verdict = ask_judge(client, trace_text)
+                    pending.append(
+                        {
+                            "condition": condition,
+                            "run_id": run.run_id,
+                            "workflow_type": run.workflow_type,
+                            "fault_type": run.injected_fault.fault_type,
+                            "actual_seq": actual,
+                            "predicted_seq": verdict.predicted_seq,
+                            "correct": verdict.predicted_seq == actual,
+                            "prompt_tokens": verdict.prompt_tokens,
+                            "latency_ms": verdict.latency_ms,
+                            "raw_response": verdict.raw_response[:120],
+                        }
+                    )
+            except LLMUnavailable as exc:
+                # Stop cleanly and report the partial population rather than
+                # dying with nothing written.
+                print(f"\n  judge unavailable, stopping early: {exc}", file=sys.stderr)
+                quota_exhausted = True
+                break
+
+            # Both conditions succeeded, so the pair is committed together.
+            for row in pending:
+                trials[row["condition"]].append(row)
+                handle.write(json.dumps(row) + "\n")
+            handle.flush()
+
+            summary_bits = [
+                f"{row['condition']}: {row['predicted_seq']} "
+                f"{'HIT ' if row['correct'] else 'miss'} ({row['prompt_tokens']}tok)"
+                for row in pending
+            ]
+            print(
+                f"  [{index:>3}/{len(population)}] "
+                f"{run.injected_fault.fault_type:<24} actual={actual}  "
+                + "  |  ".join(summary_bits)
             )
-            row.append(
-                f"{condition}: {verdict.predicted_seq} "
-                f"{'HIT ' if correct else 'miss'} "
-                f"({verdict.prompt_tokens}tok)"
-            )
-        print(
-            f"  [{index:>3}/{len(population)}] {run.injected_fault.fault_type:<24} "
-            f"actual={actual}  " + "  |  ".join(row)
-        )
+
+    judged = len(trials[CONDITIONS[0]])
+    if judged == 0:
+        print("no trials completed; nothing to report", file=sys.stderr)
+        return 2
 
     # Per-fault-type breakdown, and the both-conditions-failed count the SRS
     # asks for in section 10.3.
@@ -301,7 +364,12 @@ def main(argv: list[str] | None = None) -> int:
 
     result: dict[str, Any] = {
         "study": "primary: raw log versus extracted critical-trace summary",
-        "n": len(population),
+        # What was actually judged, which may be less than the eligible
+        # population if a free-tier daily quota was reached.
+        "n": judged,
+        "eligible_population": len(population),
+        "population_complete": judged >= len(population),
+        "stopped_early_on_quota": quota_exhausted,
         "judge_model": "stub" if args.stub_llm else args.model,
         "judge_prompt_identical_across_conditions": True,
         "judge_prompt": JUDGE_PROMPT,

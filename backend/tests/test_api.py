@@ -384,3 +384,27 @@ def test_health_reports_ok(client) -> None:
     body = client.get("/health").json()
     assert body["status"] == "ok"
     assert "runs" in body
+
+
+def test_endpoints_survive_concurrent_requests(client, conn) -> None:
+    """Regression test.
+
+    FastAPI resolves a sync generator dependency on one worker thread and runs
+    the endpoint body on another. Without `check_same_thread=False` SQLite raised
+    ProgrammingError intermittently, depending on thread assignment, which showed
+    up as sporadic 500s in the browser while the single-request tests all passed.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    for i in range(6):
+        insert_run(conn, _run(f"run-conc-{i}"))
+
+    paths = [
+        f"/runs/run-conc-{i}{suffix}"
+        for i in range(6)
+        for suffix in ("", "/critical", "/cost")
+    ]
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        codes = list(pool.map(lambda p: client.get(p).status_code, paths))
+
+    assert set(codes) == {200}, f"unexpected statuses: {sorted(set(codes))}"

@@ -104,11 +104,23 @@ _STEP_COLUMNS = (
 
 
 def connect(db_path: str | Path) -> sqlite3.Connection:
-    """Open a connection with foreign keys on and rows accessible by name."""
+    """Open a connection with foreign keys on and rows accessible by name.
+
+    ``check_same_thread=False`` is required, not merely convenient. FastAPI
+    resolves a synchronous generator dependency on one worker thread and then
+    runs the endpoint body on another, so a connection opened in the dependency
+    is used from a different thread than the one that created it. With the
+    default setting SQLite raises ProgrammingError intermittently, depending on
+    which threads the pool happens to assign.
+
+    It is safe here because connections are per request and never shared between
+    concurrent requests, so disabling the assertion removes a false positive
+    rather than a real guard.
+    """
     path = Path(db_path)
     if str(path) != ":memory:":
         path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(path))
+    conn = sqlite3.connect(str(path), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn

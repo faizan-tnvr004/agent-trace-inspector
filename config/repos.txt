@@ -1,0 +1,23 @@
+# Repositories that visibly receive agent-authored pull requests.
+# Discovered by searching for pull requests authored by known
+# agent bot accounts. Authorship is never inferred from style.
+evgenygurin/dj-music-plugin
+jlapenna/agent-lcars
+fayaw/spearlegacyLLRF
+codegen-sh/codegen
+Tuckett45/sri-frontend
+moredatarequired/jj-benchmark
+StefanMaron/BusinessCentral.AL.Runner
+machina-sports/machina-templates
+onpaj/Anela.Heblo
+nodetool-ai/nodetool
+evgenygurin/codex-bridge
+moredatarequired/toko
+kevon-dot/biotech-matching-pipeline-
+wiiiimm/gh-manager-cli
+SanjayDivakar123/RoleColorAI
+ericng-oss/APN
+dinho149/yeaboi.ai
+RokctAI/shared-workflows
+RokctAI/The-Rokct-Protocol
+sadeqisaidmohaddes-star/tew-v2

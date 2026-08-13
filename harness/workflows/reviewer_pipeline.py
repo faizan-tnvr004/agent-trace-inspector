@@ -41,7 +41,7 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from app.models import InjectedFault
-from harness.faults import apply_fault
+from harness.faults import apply_fault, earliest
 from app.grading import answer_matches
 from harness.llm import LLMClient
 from harness.tracer import TraceRecorder
@@ -271,9 +271,12 @@ def run_reviewer_pipeline(
 
             nonlocal fault
             if fault_type == "truncated_tool_result" and result:
-                s, fault = apply_fault(  # type: ignore[assignment]
+                # A revision round can call the calculator again, so this node
+                # is not guaranteed to run once. Record the first application.
+                s, applied = apply_fault(  # type: ignore[assignment]
                     "truncated_tool_result", dict(s), tracer.next_seq
                 )
+                fault = earliest(fault, applied)
 
             from app.models import ErrorInfo
 

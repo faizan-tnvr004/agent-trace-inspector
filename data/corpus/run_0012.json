@@ -8,7 +8,7 @@
   "ground_truth": "7.2",
   "injected_fault": {
     "fault_type": "injected_contradiction",
-    "target_step_seq": 9,
+    "target_step_seq": 3,
     "description": "Inserted a statement contradicting the known answer '7.2' at the front of the context supplied to the next step."
   },
   "started_at": "2026-08-13T20:33:27.625818Z",

@@ -36,6 +36,7 @@ __all__ = [
     "ALL_FAULT_TYPES",
     "applicable_faults",
     "apply_fault",
+    "earliest",
     "dropped_retrieval",
     "forced_false_rejection",
     "injected_contradiction",
@@ -252,3 +253,29 @@ def apply_fault(
             f"{', '.join(ALL_FAULT_TYPES)}"
         ) from None
     return fn(state, target_step_seq)
+
+
+def earliest(
+    existing: InjectedFault | None, candidate: InjectedFault
+) -> InjectedFault:
+    """Keep the earliest application of a fault that is applied more than once.
+
+    A fault acting on retrieved context has to be re-applied on every retrieval,
+    or a later round re-retrieves from the full corpus and silently undoes it.
+    Each application produces its own `InjectedFault`, and which one is recorded
+    decides the answer key for the whole evaluation.
+
+    It must be the first. Attribution asks which step *introduced* the error,
+    and the error was introduced the first time the fault took effect; every
+    later application only sustains it. Recording the last application instead
+    made the answer key name the final retrieval, and scored a judge wrong for
+    correctly naming the first: on the deep corpus that cost the raw-log
+    condition 22 of its 23 correct answers.
+    """
+    if existing is None:
+        return candidate
+    return (
+        existing
+        if existing.target_step_seq <= candidate.target_step_seq
+        else candidate
+    )

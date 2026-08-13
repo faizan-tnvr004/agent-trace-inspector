@@ -60,7 +60,7 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from app.models import InjectedFault
-from harness.faults import apply_fault
+from harness.faults import apply_fault, earliest
 from app.grading import answer_matches
 from harness.llm import LLMClient
 from harness.tracer import TraceRecorder
@@ -393,13 +393,15 @@ def run_rag_qa(
             accumulate chunks, so a later round re-retrieves from the full
             corpus and would silently restore what an earlier fault removed:
             the run would then carry ground truth for a fault with no effect.
-            Overwriting `fault` each time also leaves `target_step_seq` naming
-            the retrieval that actually feeds the answer.
+
+            The effect is re-applied every time, but only the *first*
+            application is recorded as the answer key. See `faults.earliest`.
             """
             nonlocal fault
             if fault_type not in _RAG_FAULTS or fault_type == "truncated_tool_result":
                 return s
-            updated, fault = apply_fault(fault_type, dict(s), tracer.next_seq)
+            updated, applied = apply_fault(fault_type, dict(s), tracer.next_seq)
+            fault = earliest(fault, applied)
             updated["context_text"] = _format_context(updated.get("chunks", []))
             return updated  # type: ignore[return-value]
 

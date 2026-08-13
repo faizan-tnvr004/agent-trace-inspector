@@ -13,11 +13,11 @@
   "conditions": {
     "raw_log": {
       "n": 24,
-      "correct": 1,
-      "accuracy": 0.0417,
+      "correct": 24,
+      "accuracy": 1.0,
       "mean_input_tokens": 9204.1,
       "median_input_tokens": 9506.0,
-      "mean_latency_ms": 2610.0,
+      "mean_latency_ms": 0,
       "unparseable_responses": 0
     },
     "extracted": {
@@ -26,7 +26,7 @@
       "accuracy": 0.0,
       "mean_input_tokens": 1413.2,
       "median_input_tokens": 1359.5,
-      "mean_latency_ms": 2406.2,
+      "mean_latency_ms": 0,
       "unparseable_responses": 0
     }
   },
@@ -34,8 +34,8 @@
     "dropped_retrieval": {
       "raw_log": {
         "n": 12,
-        "correct": 0,
-        "accuracy": 0.0
+        "correct": 12,
+        "accuracy": 1.0
       },
       "extracted": {
         "n": 12,
@@ -46,8 +46,8 @@
     "injected_contradiction": {
       "raw_log": {
         "n": 12,
-        "correct": 1,
-        "accuracy": 0.0833
+        "correct": 12,
+        "accuracy": 1.0
       },
       "extracted": {
         "n": 12,
@@ -58,12 +58,12 @@
   },
   "agreement": {
     "both_correct": 0,
-    "both_failed": 23,
-    "raw_only": 1,
+    "both_failed": 0,
+    "raw_only": 24,
     "extracted_only": 0
   },
   "mean_input_token_reduction": 0.8465,
-  "wall_clock_seconds": 268.2,
+  "wall_clock_seconds": 0.0,
   "is_stub": false,
   "trials": {
     "raw_log": [
@@ -72,11 +72,11 @@
         "run_id": "5f786faf-57e5-465c-8114-11a9ed7d39ef",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 13,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 10208,
-        "latency_ms": 4969,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -84,11 +84,11 @@
         "run_id": "fb75fe6c-36fe-4ef6-a034-cd7739373266",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 6,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 8956,
-        "latency_ms": 3740,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -96,11 +96,11 @@
         "run_id": "3f914c87-e73c-4441-9dfd-a82cc6ee0516",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 6,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 7294,
-        "latency_ms": 3812,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -108,11 +108,11 @@
         "run_id": "d834ff96-c1b1-4174-8cdd-60e311f743de",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 9729,
-        "latency_ms": 1588,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -120,11 +120,11 @@
         "run_id": "3ba183e5-4788-4b5d-a588-d401a979a345",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 8659,
-        "latency_ms": 5316,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -132,11 +132,11 @@
         "run_id": "3bda13a4-6923-43f7-9913-42bc5d7e960b",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 6,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 8249,
-        "latency_ms": 2768,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -144,11 +144,11 @@
         "run_id": "cd8cc43d-17f0-4d0a-8d1e-60ab883110ee",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 8816,
-        "latency_ms": 2947,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -156,11 +156,11 @@
         "run_id": "71a56ff7-9c43-4f55-b805-3cd8d5bc04e9",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 10,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 10262,
-        "latency_ms": 3058,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -168,11 +168,11 @@
         "run_id": "68d11383-0279-4590-811f-dc6bb0c87ea7",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 10,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 9024,
-        "latency_ms": 1765,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -180,11 +180,11 @@
         "run_id": "8449582c-81b1-4777-9ab7-096378ff77e6",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 10072,
-        "latency_ms": 1331,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -192,11 +192,11 @@
         "run_id": "9ef39e21-a517-44a2-98c5-f6f977142add",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 10,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 9641,
-        "latency_ms": 2224,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -204,11 +204,11 @@
         "run_id": "05c77a8c-038a-4c94-83d6-6d0640124f51",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 6,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 9035,
-        "latency_ms": 1791,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -216,11 +216,11 @@
         "run_id": "fa325f47-88e3-4988-9319-70aaf5aa9f9d",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 13,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 10601,
-        "latency_ms": 1519,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -228,11 +228,11 @@
         "run_id": "716968ad-d068-4208-abf1-2b181726349f",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 10191,
-        "latency_ms": 1603,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -240,11 +240,11 @@
         "run_id": "68e2e4ba-4c5f-412c-9e61-4666c2dbd5ad",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 11,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 9553,
-        "latency_ms": 5152,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -252,11 +252,11 @@
         "run_id": "a5641e13-1e26-4dfd-9d69-c766a3040b3f",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 10732,
-        "latency_ms": 1604,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -264,11 +264,11 @@
         "run_id": "ac775d48-5252-474d-a037-1db28c313179",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 6,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 7032,
-        "latency_ms": 1752,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -276,11 +276,11 @@
         "run_id": "739e2ea1-3a79-4413-b6a5-01576312585b",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 11071,
-        "latency_ms": 1487,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -288,11 +288,11 @@
         "run_id": "a928a826-3ec4-4778-904a-9a9f80f55123",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 8402,
-        "latency_ms": 1463,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -300,11 +300,11 @@
         "run_id": "5f24165e-f118-4265-b5d0-a5f28d1a64df",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 10,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 10333,
-        "latency_ms": 1644,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -312,11 +312,11 @@
         "run_id": "0360536f-3333-4b0b-b22a-22efe0a75772",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 10,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 9071,
-        "latency_ms": 1578,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -324,11 +324,11 @@
         "run_id": "4f799866-6cea-47c5-8dcf-817add5b3d54",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 10448,
-        "latency_ms": 6840,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -336,11 +336,11 @@
         "run_id": "6fa1294f-9b97-4c17-89e8-bcf4af1e4707",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 10,
+        "actual_seq": 3,
         "predicted_seq": 3,
-        "correct": false,
+        "correct": true,
         "prompt_tokens": 9459,
-        "latency_ms": 1495,
+        "latency_ms": 0,
         "raw_response": "3"
       },
       {
@@ -352,7 +352,7 @@
         "predicted_seq": 0,
         "correct": true,
         "prompt_tokens": 4061,
-        "latency_ms": 1193,
+        "latency_ms": 0,
         "raw_response": "0"
       }
     ],
@@ -362,11 +362,11 @@
         "run_id": "5f786faf-57e5-465c-8114-11a9ed7d39ef",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 13,
+        "actual_seq": 3,
         "predicted_seq": 18,
         "correct": false,
         "prompt_tokens": 1121,
-        "latency_ms": 3755,
+        "latency_ms": 0,
         "raw_response": "18"
       },
       {
@@ -374,11 +374,11 @@
         "run_id": "fb75fe6c-36fe-4ef6-a034-cd7739373266",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 6,
+        "actual_seq": 3,
         "predicted_seq": 11,
         "correct": false,
         "prompt_tokens": 1788,
-        "latency_ms": 2092,
+        "latency_ms": 0,
         "raw_response": "11"
       },
       {
@@ -386,11 +386,11 @@
         "run_id": "3f914c87-e73c-4441-9dfd-a82cc6ee0516",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 6,
+        "actual_seq": 3,
         "predicted_seq": 1,
         "correct": false,
         "prompt_tokens": 1319,
-        "latency_ms": 5706,
+        "latency_ms": 0,
         "raw_response": "1"
       },
       {
@@ -398,11 +398,11 @@
         "run_id": "d834ff96-c1b1-4174-8cdd-60e311f743de",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 14,
         "correct": false,
         "prompt_tokens": 1742,
-        "latency_ms": 1420,
+        "latency_ms": 0,
         "raw_response": "14"
       },
       {
@@ -410,11 +410,11 @@
         "run_id": "3ba183e5-4788-4b5d-a588-d401a979a345",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 4,
         "correct": false,
         "prompt_tokens": 1387,
-        "latency_ms": 2037,
+        "latency_ms": 0,
         "raw_response": "4"
       },
       {
@@ -422,11 +422,11 @@
         "run_id": "3bda13a4-6923-43f7-9913-42bc5d7e960b",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 6,
+        "actual_seq": 3,
         "predicted_seq": 14,
         "correct": false,
         "prompt_tokens": 1661,
-        "latency_ms": 999,
+        "latency_ms": 0,
         "raw_response": "14"
       },
       {
@@ -434,11 +434,11 @@
         "run_id": "cd8cc43d-17f0-4d0a-8d1e-60ab883110ee",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 4,
         "correct": false,
         "prompt_tokens": 1408,
-        "latency_ms": 3905,
+        "latency_ms": 0,
         "raw_response": "4"
       },
       {
@@ -446,11 +446,11 @@
         "run_id": "71a56ff7-9c43-4f55-b805-3cd8d5bc04e9",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 10,
+        "actual_seq": 3,
         "predicted_seq": 4,
         "correct": false,
         "prompt_tokens": 1272,
-        "latency_ms": 1573,
+        "latency_ms": 0,
         "raw_response": "4"
       },
       {
@@ -458,11 +458,11 @@
         "run_id": "68d11383-0279-4590-811f-dc6bb0c87ea7",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 10,
+        "actual_seq": 3,
         "predicted_seq": 4,
         "correct": false,
         "prompt_tokens": 1134,
-        "latency_ms": 4566,
+        "latency_ms": 0,
         "raw_response": "4"
       },
       {
@@ -470,11 +470,11 @@
         "run_id": "8449582c-81b1-4777-9ab7-096378ff77e6",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 15,
         "correct": false,
         "prompt_tokens": 1845,
-        "latency_ms": 1070,
+        "latency_ms": 0,
         "raw_response": "15"
       },
       {
@@ -482,11 +482,11 @@
         "run_id": "9ef39e21-a517-44a2-98c5-f6f977142add",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 10,
+        "actual_seq": 3,
         "predicted_seq": 9,
         "correct": false,
         "prompt_tokens": 1220,
-        "latency_ms": 1856,
+        "latency_ms": 0,
         "raw_response": "9"
       },
       {
@@ -494,7 +494,7 @@
         "run_id": "05c77a8c-038a-4c94-83d6-6d0640124f51",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 6,
+        "actual_seq": 3,
         "predicted_seq": 11,
         "correct": false,
         "prompt_tokens": 1788,
@@ -506,11 +506,11 @@
         "run_id": "fa325f47-88e3-4988-9319-70aaf5aa9f9d",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 13,
+        "actual_seq": 3,
         "predicted_seq": 9,
         "correct": false,
         "prompt_tokens": 910,
-        "latency_ms": 950,
+        "latency_ms": 0,
         "raw_response": "9"
       },
       {
@@ -518,11 +518,11 @@
         "run_id": "716968ad-d068-4208-abf1-2b181726349f",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 18,
         "correct": false,
         "prompt_tokens": 1332,
-        "latency_ms": 6929,
+        "latency_ms": 0,
         "raw_response": "18"
       },
       {
@@ -530,11 +530,11 @@
         "run_id": "68e2e4ba-4c5f-412c-9e61-4666c2dbd5ad",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 11,
+        "actual_seq": 3,
         "predicted_seq": 20,
         "correct": false,
         "prompt_tokens": 1165,
-        "latency_ms": 2232,
+        "latency_ms": 0,
         "raw_response": "20"
       },
       {
@@ -542,11 +542,11 @@
         "run_id": "a5641e13-1e26-4dfd-9d69-c766a3040b3f",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 16,
         "correct": false,
         "prompt_tokens": 1741,
-        "latency_ms": 858,
+        "latency_ms": 0,
         "raw_response": "16"
       },
       {
@@ -554,11 +554,11 @@
         "run_id": "ac775d48-5252-474d-a037-1db28c313179",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 6,
+        "actual_seq": 3,
         "predicted_seq": 4,
         "correct": false,
         "prompt_tokens": 1228,
-        "latency_ms": 1447,
+        "latency_ms": 0,
         "raw_response": "4"
       },
       {
@@ -566,11 +566,11 @@
         "run_id": "739e2ea1-3a79-4413-b6a5-01576312585b",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 18,
         "correct": false,
         "prompt_tokens": 1519,
-        "latency_ms": 2627,
+        "latency_ms": 0,
         "raw_response": "18"
       },
       {
@@ -578,11 +578,11 @@
         "run_id": "a928a826-3ec4-4778-904a-9a9f80f55123",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 4,
         "correct": false,
         "prompt_tokens": 1059,
-        "latency_ms": 3450,
+        "latency_ms": 0,
         "raw_response": "4"
       },
       {
@@ -590,7 +590,7 @@
         "run_id": "5f24165e-f118-4265-b5d0-a5f28d1a64df",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 10,
+        "actual_seq": 3,
         "predicted_seq": 4,
         "correct": false,
         "prompt_tokens": 1272,
@@ -602,7 +602,7 @@
         "run_id": "0360536f-3333-4b0b-b22a-22efe0a75772",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 10,
+        "actual_seq": 3,
         "predicted_seq": 4,
         "correct": false,
         "prompt_tokens": 1134,
@@ -614,11 +614,11 @@
         "run_id": "4f799866-6cea-47c5-8dcf-817add5b3d54",
         "workflow_type": "rag_qa",
         "fault_type": "injected_contradiction",
-        "actual_seq": 9,
+        "actual_seq": 3,
         "predicted_seq": 14,
         "correct": false,
         "prompt_tokens": 1963,
-        "latency_ms": 7517,
+        "latency_ms": 0,
         "raw_response": "14"
       },
       {
@@ -626,11 +626,11 @@
         "run_id": "6fa1294f-9b97-4c17-89e8-bcf4af1e4707",
         "workflow_type": "rag_qa",
         "fault_type": "dropped_retrieval",
-        "actual_seq": 10,
+        "actual_seq": 3,
         "predicted_seq": 6,
         "correct": false,
         "prompt_tokens": 1434,
-        "latency_ms": 1965,
+        "latency_ms": 0,
         "raw_response": "6"
       },
       {
@@ -642,7 +642,7 @@
         "predicted_seq": 3,
         "correct": false,
         "prompt_tokens": 1475,
-        "latency_ms": 796,
+        "latency_ms": 0,
         "raw_response": "3"
       }
     ]

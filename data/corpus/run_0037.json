@@ -8,7 +8,7 @@
   "ground_truth": "10",
   "injected_fault": {
     "fault_type": "dropped_retrieval",
-    "target_step_seq": 13,
+    "target_step_seq": 3,
     "description": "Removed the retrieved chunk 'doc-07#c1', the only chunk containing the answer. 0 chunk(s) dropped, 5 retained."
   },
   "started_at": "2026-08-13T20:37:30.664232Z",

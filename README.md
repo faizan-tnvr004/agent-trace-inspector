@@ -21,11 +21,22 @@ evidence.
 
 Two agentic workflows were instrumented to emit traces conforming to a single
 framework-agnostic schema: a `reviewer_pipeline` (executor → reviewer → revision
-over mathematics tasks) and a `rag_qa` agent (retrieve → reason → answer over a
-controlled document set). Both are LangGraph state machines. Faults of four
-kinds were injected deliberately so that failure causes have ground truth:
-dropped retrieval, truncated tool result, forced false rejection, and injected
-contradiction. Each run records which fault was applied and at which step.
+over mathematics tasks) and a `rag_qa` agent over a controlled document set.
+Both are LangGraph state machines. Faults of four kinds were injected
+deliberately so that failure causes have ground truth: dropped retrieval,
+truncated tool result, forced false rejection, and injected contradiction. Each
+run records which fault was applied and at which step, at the **first**
+application rather than the last, since attribution asks which step introduced
+the error.
+
+`rag_qa` is at version 2.0.0 and runs gather → tools → reason → verify →
+revise → answer: two or three retrieval rounds, each with its own plan, query
+reformulation and retrieval, plus a retry when a round comes back thin; an
+extraction tool and an arithmetic tool, each with separate `tool_call` and
+`tool_result` steps; then per-claim verification, with a revision when any claim
+is rejected. Only the draft and the revision call a model. The earlier 1.0.0
+version emitted 4 to 8 steps and is described in 3.4, because its depth is the
+reason the first study could not test its own hypothesis.
 
 The extraction engine scores every step on three signals — evidence survival
 (embedding cosine similarity of the step's output against the final output),
@@ -42,9 +53,7 @@ fault labels are removed from the text.
 
 ## 3. Results
 
-Ordered by how much the design can support, strongest first. The primary study
-is fourth because, as run, it does not test the question it was built to answer;
-that is explained in 3.4 rather than buried in the limitations.
+The headline is a negative result about this tool, and it leads.
 
 All figures come from `gemini-3.5-flash-lite` for corpus generation and
 `gemini-3.1-flash-lite` as the study judge, both on the free tier. Free-tier
@@ -53,36 +62,95 @@ into this corpus, and every cost figure in this repository is **notional**:
 computed from published list prices to show what the same token usage would have
 cost, not money that was spent.
 
-### 3.1 Fault potency
+The `rag_qa` workflow was rewritten to version 2.0.0 partway through. The
+original emitted 4 to 8 steps a run, which made the primary study untestable: a
+top-5 extraction kept the whole trace, so the two conditions differed by
+formatting rather than content. The deep corpus has a median of 20 steps in the
+study population, where extraction removes 14.17 steps a run and 84.7% of input
+tokens. Every number below is from the deep corpus unless it says otherwise.
+
+### 3.1 Extraction prunes the causal step
+
+**On traces of realistic depth the extraction engine removes the evidence needed
+to locate the failure.** Full write-up in
+[docs/finding-extraction-prunes-causal-steps.md](docs/finding-extraction-prunes-causal-steps.md).
+
+| Measure | Shallow (median 4 steps) | Deep (median 20 steps) |
+|---|---|---|
+| Heuristic attribution | 11/31 (35.5%) | **0/24 (0.0%)** |
+| Top-5 contains the causal step | top-5 was the whole trace | **0/24** |
+| Median rank of the causal step | n/a | **13 of ~20** |
+| Extracted condition, primary study | 19/31 (61.3%) | **0/24 (0.0%)** |
+
+**Mechanism.** A `plan`, `retry`, `decision` or `critique` step contains
+procedural text, and procedural text never resembles a final answer, so its
+similarity to the final output is low by construction. Both weightings read that
+low similarity as *divergence*, and so as criticality. Meanwhile the retrieval
+that actually lost a chunk still returns three plausible passages, scores high
+on evidence survival, and looks healthy. `divergent_branch` at weight 1.5
+outranks `thin_retrieval` at 1.0, so on a typical run seven procedural steps tie
+above the one rule designed to catch the fault.
+
+Across all 24 runs' top-five slots the engine selected `plan` 48 times,
+`revision` 22, `final` 22, `reasoning` 13, `critique` 9, `retry` 6, and
+**`retrieval` zero times**. The event type carrying every fault in this
+population never appears in the summary.
+
+**This scales with trace length, which is why it was invisible before.**
+Fault-presence signals are constant in trace length: one fault, one anomalous
+step. Structural signals grow with it: more retrieval rounds mean more plans and
+retries, more claims mean more critiques. The median deep run holds **7**
+procedural steps against 1 faulted step, where a shallow run held 1 or 2. With a
+fixed top-5 this is a ranking competition the causal step loses more decisively
+the longer the trace. An extraction heuristic tuned on short traces can encode a
+signal-to-noise ratio that only holds at that length, and no shallow evaluation
+reveals it.
+
+**Stated plainly: on realistic traces this engine is not neutral, it is
+harmful.** A reader given the extracted summary is worse off than one given the
+raw log, because the summary removed the step that explains the failure and
+replaced it with the pipeline's own bookkeeping. No weight, threshold or signal
+definition was changed in response to this result.
+
+### 3.2 Fault potency
 
 How often each injected fault actually changed the outcome. Direct measurement,
 no inference and no judge: the fault either flipped the run to a failure or it
-did not. This is the headline because it shapes everything downstream, and
-because it is the one number here that nothing else is contingent on.
+did not. It shapes everything downstream, because a fault that changes nothing
+produces no failed run to attribute.
 
 | Workflow | Fault type | Caused failure | Potency |
 |---|---|---|---|
-| rag_qa | dropped_retrieval | 15/15 | 100% |
-| rag_qa | injected_contradiction | 13/15 | 87% |
-| rag_qa | truncated_tool_result | 2/15 | 13% |
+| rag_qa | dropped_retrieval | 12/12 | 100% |
+| rag_qa | injected_contradiction | 11/11 | 100% |
+| rag_qa | truncated_tool_result | **0/11** | **0%** |
+| rag_qa | forced_false_rejection | **0/11** | **0%** |
 | reviewer_pipeline | injected_contradiction | 1/10 | 10% |
 | reviewer_pipeline | forced_false_rejection | 0/10 | 0% |
 | reviewer_pipeline | truncated_tool_result | 0/9 | 0% |
 
-**The reviewer pipeline is close to immune to injected faults: 1 failure from 29
-injections.** The mechanism is visible in the traces rather than inferred. The
-reviewer catches the corrupted answer, the revision repairs it, and the run ends
-correct. `forced_false_rejection` is the sharpest case: forcing the reviewer to
-reject a correct answer produced zero failures in ten attempts, because the
-revision step re-derived the same answer.
+**Two of the four fault types are now inert.** Both were weakened by the deeper
+workflow, and neither was tuned back into potency.
 
-Two consequences worth stating. A reviewer-equipped workflow contributes almost
-nothing to an injected-fault study, so the evaluation population is dominated by
-one workflow and one fault family. And fault *type* matters far more than fault
-*presence*: retrieval faults are near-certain to cause failure, truncation
-faults rarely do, and the difference is an order of magnitude.
+`truncated_tool_result` fell from 13% to zero. The deep workflow has a real
+tool_result step, so the fault now truncates the extraction tool's digest rather
+than the retrieval context it used to hit. That is the semantically correct
+target for a fault of this name, and it is also a redundant channel: the
+answerer is given the digest *and* the raw passages, so it reads the value
+straight out of the passages and the truncation changes nothing. Making it
+potent again would mean removing the raw context from the answerer's prompt,
+which would be redesigning the workflow to make a fault work.
 
-### 3.2 The label-leak effect
+`forced_false_rejection` is zero in both workflows for the same reason: the
+revision step re-derives the same answer. The reviewer pipeline overall is close
+to immune, at 1 failure from 29 injections, and the mechanism is visible in the
+traces rather than inferred.
+
+The consequence is that fault *type* matters far more than fault *presence*.
+Retrieval and contradiction faults are certain to cause failure here; truncation
+and forced rejection never do.
+
+### 3.3 The label-leak effect
 
 A methodological finding, and the one most likely to be useful to anyone else
 building a fault-injected corpus.
@@ -115,119 +183,109 @@ but it now excludes nothing.
 **Practical rule: name injected artifacts exactly as ordinary ones are named,
 and verify at generation time rather than at analysis time.**
 
-### 3.3 Heuristic attribution
-
-The tool's own failure attribution, which uses no LLM at all. This is a clean
-negative about the tool.
-
-| Fault type | correct | accuracy |
-|---|---|---|
-| dropped_retrieval | 11/15 | 73.3% |
-| injected_contradiction | 0/14 | 0.0% |
-| truncated_tool_result | 0/2 | 0.0% |
-| **overall** | **11/31** | **35.5%** |
-
-Seven of the 31 produced no prediction at all, which the tool reports as "the
-trace does not localise the cause" rather than guessing at step 0.
-
-**The 0/14 on injected contradictions is a genuine gap in the design, not a
-tuning problem.** The rule set scores steps that are missing, empty, thin or
-erroring. A retrieval that returns a full set of plausible chunks, one of which
-happens to contradict the others, is none of those things: it looks healthy by
-every signal the engine has. Detecting it would need a contradiction signal
-comparing retrieved chunks against each other, which does not exist in the
-engine and was not added, because adding it after seeing the result would be
-fitting the rules to the test set. The weights were fixed before the evaluation
-ran and have not been touched since.
-
 ### 3.4 Primary study
 
-Population: all 31 failed runs carrying a known injected fault, with **no
+Population: all 24 failed runs carrying a known injected fault, with **no
 exclusions**. Judge: `gemini-3.1-flash-lite`, temperature 0, identical prompt in
 both conditions.
 
-| Condition | n | correct | accuracy | mean input tokens | median input tokens | mean latency |
-|---|---|---|---|---|---|---|
-| **raw_log** | 31 | 18 | **58.1%** | 2,879 | 2,774 | 1,177 ms |
-| **extracted** | 31 | 19 | **61.3%** | 1,445 | 1,366 | 1,151 ms |
+| Condition | n | correct | accuracy | mean input tokens | median input tokens |
+|---|---|---|---|---|---|
+| **raw_log** | 24 | 24 | **100.0%** | 9,204 | 9,459 |
+| **extracted** | 24 | 0 | **0.0%** | 1,413 | 1,366 |
 
-Input token reduction: **49.8%**. No judge response was unparseable in either
-condition.
+Input token reduction: **84.7%**. No judge response was unparseable in either
+condition. All 24 discordant pairs favour the raw log:
+**McNemar exact two-sided p = 1.19 × 10⁻⁷**.
 
-Agreement pattern: both conditions correct on 15 runs, both wrong on 9, 4 that
-only extraction got and 3 that only the raw log got. Seven discordant pairs,
-four to three: **McNemar exact two-sided p = 1.000**.
+Extraction now genuinely prunes, which is what makes the comparison meaningful
+rather than a floor effect. On the study population it removes **14.17 steps** a
+run, and **no run** is short enough for a top-5 to keep it whole:
 
-Per fault type:
-
-| Fault type | raw_log | extracted |
+| Measure | Shallow corpus | Deep corpus |
 |---|---|---|
-| dropped_retrieval | 11/15 | 11/15 |
-| injected_contradiction | 5/14 | 7/14 |
-| truncated_tool_result | 2/2 | 1/2 |
+| Median steps per run (study population) | 4 | **20** |
+| Runs where top-5 keeps everything | 18 of 31 (58%) | **0 of 24 (0%)** |
+| Mean steps removed by extraction | 0.48 | **14.17** |
+| Input token reduction | 49.8% | **84.7%** |
 
-#### The study as built does not test the stated hypothesis
+#### What the 100% does and does not mean
 
-The hypothesis is that pruning a long trace to its critical steps helps a reader
-locate a failure. This corpus cannot test that, because **extraction barely
-prunes anything**:
+**It is not evidence that the judge comprehends a 20-step trace.** Correcting the
+answer key (see 3.5) puts the causal step at the run's first retrieval, which
+sits at a fixed position in the deep workflow: the correct answer is seq 3 on
+**23 of the 24 runs**. The raw-log judge answered 3 on exactly those 23 and 0 on
+the remaining one. A judge that always answered "3" would score 23/24, so this
+result cannot be distinguished from positional luck. The label has almost no
+variance, and the raw-log figure should be read as a ceiling artifact.
 
-| Measure | Value |
-|---|---|
-| Median steps per run (study population) | 4 |
-| Runs where the trace has ≤5 steps, so top-5 keeps everything | **18 of 31 (58%)** |
-| Mean steps removed by extraction | **0.48** |
+**The extracted 0% is not a label-variance artifact, and that asymmetry is the
+finding.** The answer is trivially "3" and available to anything that can see
+the first retrieval. The extracted condition still never finds it, because the
+step is not in what it is shown: its top-5 contains the causal step in 0 of 24
+runs. Its answers are scattered across 11 distinct step numbers, which is what
+guessing looks like. See 3.1.
 
-On more than half the population the two conditions contain **identical
-content**, and across the whole population extraction removes under half a step
-per run. Condition B is therefore not a subset of condition A; it is very largely
-a reformatting of it, prose where condition A is JSON.
+So the study does not establish that raw logs are readable. It establishes that
+extraction removes the answer even when the answer is easy.
 
-This is why the result is **not** reported as a null result. A null result means
-the design could have detected an effect and did not. This design could not:
-the conditions are near-identical by construction on a corpus whose median run is
-four steps, so p = 1.000 reflects the absence of a manipulation rather than the
-absence of an effect.
+### 3.5 The answer key was mislabelled, and is corrected
 
-The 49.8% token reduction is real as a measurement but must not be read as
-pruning. It is **roughly half the tokens but nearly all the content**, and the
-saving comes mostly from prose-versus-JSON serialisation rather than from
-dropping steps. Format and length vary together here and cannot be separated.
+Worth recording because it inverted the study's result and nothing failed while
+it was wrong.
 
-Fixing this requires a deeper corpus, not a different analysis. Tuning the
-extraction weights until a difference appeared would be fitting to the outcome,
-and was not done.
+A fault acting on retrieved context is re-applied on every retrieval round, or a
+later round re-retrieves from the full corpus and silently undoes it. Each
+application produced its own record and **the last one won**, so the answer key
+named the final retrieval while the error was introduced at the first.
 
-### 3.5 Rejection outcomes
+| Condition | Against the old key | Against the corrected key |
+|---|---|---|
+| raw_log | 1/24 (4.2%) | 24/24 (100%) |
+| extracted | 0/24 (0.0%) | 0/24 (0.0%) |
+| heuristic attribution | 0/24 (0.0%) | 0/24 (0.0%) |
+| McNemar | p = 1.000 | p = 1.19 × 10⁻⁷ |
+
+The judges were reading the traces correctly and being marked wrong. On a
+single-round workflow first and last are the same step, so no test caught it and
+no number looked odd. The fix records the first application; the corpus was
+corrected in place by
+[harness/restamp_fault_labels.py](harness/restamp_fault_labels.py), which changed
+one integer on 23 of 120 runs and left every step untouched, so the judge's
+cached answers stayed valid and rescoring cost no quota. An invariant test now
+asserts the recorded seq is the earliest application, checked both on freshly
+generated runs and directly against the committed corpus.
+
+### 3.6 Rejection outcomes
 
 The repair / damage / no-change taxonomy applied to every critique step, 78
 critiques across 60 runs:
 
 | Population | n | repair | damage | no_change |
 |---|---|---|---|---|
-| All critiques | 78 | 2.6% | 1.3% | 96.2% |
-| **Critiques that actually rejected** | **19** | **10.5%** | **5.3%** | **84.2%** |
+| All critiques | 226 | 0.9% | 0.4% | 98.7% |
+| **Critiques that actually rejected** | **96** | **2.1%** | **1.0%** | **96.9%** |
 
 The second row is the one that means anything. The specification defines
 `no_change` to cover a critique with no following revision, which is correct as
 written but lumps an *approving* reviewer together with one that objected and
-was ignored. Blended, the no-change rate is 96.2% simply because most critiques
-are approvals.
+was ignored.
 
-Over actual rejections, 84.2% of criticism changed nothing: 16 of 19.
+Over actual rejections, 96.9% of criticism changed nothing: 93 of 96.
 
-**This is directionally consistent with prior work, and n is too small to call a
-reproduction.** The author's earlier study found a reviewer whose apparent safety
-was an artifact of the executor ignoring its critiques rather than of good
-reviewing, and the direction here matches. But 19 rejections in a single task
-family under a single model is not enough to establish that, and one
-reclassified critique moves the rate by five points. Treated as a suggestive
-observation, not as evidence that the earlier finding generalises.
+**This is directionally consistent with prior work, and n is too small to call
+it more than that.** The author's earlier study found a reviewer whose apparent
+safety was an artifact of the executor ignoring its critiques rather than of
+good reviewing, and the direction here matches. But 96 rejections in a single
+task family under a single model family is not enough to establish that, and the
+deep `rag_qa` verifier is a lexical check rather than a model, so most of these
+critiques are not the same object the prior study coded. Treated as a suggestive
+observation.
 
-### 3.6 Provenance
+### 3.7 Provenance
 
-Across all 120 runs, **89 of 335 claims (26.6%) have no supporting step**,
-affecting 65 of 120 runs. Support means an upstream step produced text with
+Across all 120 runs, **66 of 318 claims (20.8%) have no supporting step**,
+affecting 50 of 120 runs. Support means an upstream step produced text with
 cosine similarity ≥ 0.6 to the claim.
 
 **Read this as a diagnostic of the tool, not as a property of the agents.** The
@@ -240,7 +298,7 @@ reasons it cannot carry the stronger reading:
 - Sentence-level splitting is not proposition-level splitting, so a sentence
   carrying two assertions counts once, and a subordinate clause can be split off
   and stranded.
-- Short text embeds badly. **25 of the 89 unsupported claims (28%) are under 40
+- Short text embeds badly. **26 of the 66 unsupported claims (39%) are under 40
   characters**, and the median unsupported claim is exactly 40 characters. A
   bare `ANSWER: 312` has little to embed and is easily scored unsupported even
   when the step above it produced the number.
@@ -253,11 +311,16 @@ now discarded structurally rather than by threshold, which is why the current
 figure is lower. That fix removed an obvious artifact; it did not validate what
 remains.
 
-### 3.7 Corpus
+### 3.8 Corpus
 
-120 runs, 60 per workflow, 684 steps, 82,601 tokens. 74 runs (62%) carry an
-injected fault, spread across all four types. 31 runs both failed and carry a
+120 runs, 60 per workflow, 1,552 steps, 120,643 tokens. 74 runs (62%) carry an
+injected fault, spread across all four types. 24 runs both failed and carry a
 known fault, which is the evaluation population.
+
+The two halves differ in depth: `rag_qa` is at version 2.0.0 and emits 16 to 24
+steps a run, `reviewer_pipeline` is unchanged at 1.0.0 and emits 6 to 8. Overall
+median is 16 and mean 12.9, but the evaluation population is 23 deep `rag_qa`
+runs and 1 shallow `reviewer_pipeline` run, so its median is 20.
 
 ## 4. Reviewer leniency toward agent-authored code
 
@@ -334,24 +397,30 @@ through corpus generation, an import adapter, or `POST /runs`:
 
 ## 7. Limitations
 
-Stated plainly, worst first. The first one invalidates the primary study as a
-test of the hypothesis; the rest bound what the other results mean.
+Stated plainly, worst first.
 
-**Traces are too short for the hypothesis to be testable.** The median run in the
-study population is **4 steps** and the maximum is 8. Top-5 extraction therefore
-keeps the entire trace on **18 of 31 runs (58%)** and removes **0.48 steps** per
-run on average. The two conditions are near-identical by construction, so the
-study measures serialisation format, not pruning. Everything else in 3.4 follows
-from this. A corpus of 20 to 40 step runs is required before the question can be
-asked at all, and no reanalysis of this corpus substitutes for it.
-
-**The effective corpus is one workflow and one fault family.** Fault potency is
-so skewed (3.1) that although the corpus holds 120 runs across two workflows and
-four fault types, the evaluation population is 31 runs of which 30 are `rag_qa`
-and 15 are `dropped_retrieval`. `forced_false_rejection` contributed zero failed
-runs and is absent from every per-type breakdown despite being injected ten
-times. Conclusions about "agent traces" are really conclusions about retrieval
+**Two of the four fault types are inert, so the effective population is 24 runs
+across two fault types.** `truncated_tool_result` (0/11) and
+`forced_false_rejection` (0/11) produced no failed runs in the deep workflow, so
+the evaluation population is entirely `dropped_retrieval` (12) and
+`injected_contradiction` (12), and 23 of the 24 come from one workflow.
+**Per-fault-type claims are not supportable from this corpus**, and neither are
+claims about "agent traces" in general: these are conclusions about retrieval
 faults in one RAG pipeline.
+
+**The answer key has almost no variance.** The corrected label puts the causal
+step at the run's first retrieval, which sits at seq 3 in 23 of 24 runs. A judge
+that always answered "3" scores 23/24, so the raw-log condition's 100% cannot be
+distinguished from positional luck and is a ceiling artifact. The asymmetry with
+the extracted condition (0/24 on the same easy answer) is what carries meaning;
+the raw-log number on its own does not. A corpus that varied where the fault
+lands would fix this and has not been built.
+
+**Median 20 steps is still short relative to production agent traces.** It is
+enough for extraction to prune (14.17 steps removed a run, 84.7% of tokens) and
+therefore enough to ask the question, but real agent traces run to hundreds of
+steps. Section 3.1 argues the extraction defect gets *worse* with length, so the
+direction is known even though the magnitude at production scale is not.
 
 **Single model family.** Corpus generation used `gemini-3.5-flash-lite` and the
 judge was `gemini-3.1-flash-lite`. Both are Gemini tiers, so a judge evaluating
@@ -362,25 +431,32 @@ confounded with capability. A cross-family control (one Gemini, one non-Gemini)
 is the obvious next step and has not been run.
 
 **An LLM judge is not the reader the question is about.** The research question
-concerns a human inspecting a trace. A judge that consumes 2,879 tokens without
-effort has none of the length limits that motivate extraction, so even a
-well-powered version of this study would answer a different question than the one
-asked. The SRS anticipated hand-checking a subsample against human readers; that
-has not been done.
+concerns a human inspecting a trace. A judge that consumes 9,204 tokens without
+effort has none of the length limits that motivate extraction, so this study
+answers a different question than the one asked. The SRS anticipated
+hand-checking a subsample against human readers; that has not been done.
 
-**n = 31, single judge, single run, no variance estimate.** Temperature 0 gives
-one sample per condition per run, so judge variance is unmeasured. Seven
-discordant pairs give McNemar exact p = 1.000. No significance is claimed.
+**n = 24, single judge, single run, no variance estimate.** Temperature 0 gives
+one sample per condition per run, so judge variance is unmeasured.
+
+**Provenance (20.8%) is a tool diagnostic, not a property of the agents.** It
+says how often this implementation failed to link a sentence to a step. The 0.6
+similarity threshold was never validated against human judgement, and 39% of
+unsupported claims are under 40 characters, where embedding comparison is
+weakest. See 3.7.
 
 **Claims are sentences, not propositions.** Semantic claim extraction would need
 an LLM in a path that must stay deterministic, so sentence splitting is a
-deliberate fallback. A sentence carrying two assertions counts once; a short
-claim can be marked unsupported because short text embeds badly, and 28% of
-unsupported claims are under 40 characters. The 0.6 similarity threshold was
-never validated against human judgement. See 3.6.
+deliberate fallback. A sentence carrying two assertions counts once, and a
+subordinate clause can be split off and stranded.
+
+**Rejection outcomes (96.9% no-change, n = 96) are directionally consistent with
+prior work and no more than that.** One task family, one model family, and the
+deep `rag_qa` verifier is a lexical check rather than a model, so most of these
+critiques are not the same object the earlier study coded.
 
 **Injected faults are probably easier to find than natural ones.** They are
-introduced at a known point by construction, and 3.2 shows the injection itself
+introduced at a known point by construction, and 3.3 shows the injection itself
 can change agent behaviour. The corpus contains no naturally failing runs to
 compare against.
 

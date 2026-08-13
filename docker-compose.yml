@@ -1,0 +1,49 @@
+# One command start: `docker compose up --build`.
+#
+# The backend loads the committed corpus into SQLite on first boot, so a reviewer
+# with no setup knowledge gets a working system with data in it (NFR-4). No
+# database service, no queue, no cache: the corpus is hundreds of runs.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      TRACE_DB_PATH: /app/data/traces.db
+      CORPUS_DIR: /app/data/corpus
+      EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+      # Only needed to regenerate the corpus or rerun the study from inside the
+      # container. Serving the committed corpus needs no API key.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    volumes:
+      # Read-only: the container serves the committed corpus and must not be
+      # able to rewrite it.
+      - ./data:/app/data:ro
+      # The database is regenerated from the corpus on boot, so it lives in an
+      # anonymous volume rather than on the read-only mount.
+      - backend-db:/app/var
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      # Reached from the browser, so it must be the host-published address, not
+      # the compose service name.
+      VITE_API_BASE_URL: http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_started
+
+volumes:
+  backend-db:

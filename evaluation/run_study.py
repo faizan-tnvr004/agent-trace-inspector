@@ -47,7 +47,11 @@ from harness.llm import LLMUnavailable, build_client  # noqa: E402
 
 CONDITIONS = ("raw_log", "extracted")
 CRITICAL_K = 5
-DEFAULT_MODEL = os.environ.get("JUDGE_MODEL", "gemini-3.5-flash-lite")
+# The judge behind the published table. Free-tier daily caps differ by an order
+# of magnitude between models (500/day on the lite tiers against 20/day on
+# gemini-3.5-flash), so the default is a model whose cap fits the whole
+# population in one sitting.
+DEFAULT_MODEL = os.environ.get("JUDGE_MODEL", "gemini-3.1-flash-lite")
 
 
 # ---------------------------------------------------------------------------
@@ -169,6 +173,51 @@ def is_compromised(run: Run) -> bool:
         _FAULT_RESIDUE.search(serialise_raw_log(run))
         or _FAULT_RESIDUE.search(serialise_extracted(run))
     )
+
+
+def load_checkpoint(path: Path) -> dict[str, list[dict[str, Any]]]:
+    """Checkpointed trials, one row per run and condition.
+
+    Rows are keyed rather than appended. A checkpoint accumulated across several
+    sessions can hold more than one row for the same run and condition, and only
+    the newest was judged against the current corpus. Appending blindly would
+    count a run twice and inflate n, which is a silent corruption of every
+    accuracy figure downstream.
+    """
+    latest: dict[tuple[str, str], dict[str, Any]] = {}
+    for line in path.read_text().splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        latest[(row["run_id"], row["condition"])] = row
+
+    trials: dict[str, list[dict[str, Any]]] = {c: [] for c in CONDITIONS}
+    for row in latest.values():
+        if row["condition"] in trials:
+            trials[row["condition"]].append(row)
+    return trials
+
+
+def resolve_output_path(out_path: Path, *, complete: bool) -> tuple[Path, dict[str, Any]]:
+    """Where to write this study, and what it would displace.
+
+    An incomplete run must never overwrite a complete one. The published table is
+    read from this file, and a run cut short by a daily quota is
+    indistinguishable from a finished study once written: same fields, smaller n.
+    It is diverted to a ``_partial`` sibling instead.
+
+    Returns ``(path, displaced)``, where ``displaced`` is the existing complete
+    study when the write was diverted and empty otherwise.
+    """
+    if complete or not out_path.exists():
+        return out_path, {}
+    try:
+        existing = json.loads(out_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return out_path, {}
+    if not existing.get("population_complete"):
+        return out_path, {}
+    return out_path.with_name(out_path.stem + "_partial.json"), existing
 
 
 def load_population(
@@ -296,12 +345,15 @@ def main(argv: list[str] | None = None) -> int:
 
     trials: dict[str, list[dict[str, Any]]] = {c: [] for c in CONDITIONS}
     done_run_ids: set[str] = set()
-    if checkpoint.exists() and not args.restart:
-        for line in checkpoint.read_text().splitlines():
-            if not line.strip():
-                continue
-            row = json.loads(line)
-            trials[row["condition"]].append(row)
+    if args.restart and checkpoint.exists():
+        # Trials are appended, so ignoring the checkpoint is not enough: the old
+        # rows would stay in the file and a later resume would load them
+        # alongside the new ones. Those rows may have been judged against a
+        # different corpus, which is exactly the contamination the checkpoint is
+        # meant to avoid. --restart therefore discards them.
+        checkpoint.unlink()
+    if checkpoint.exists():
+        trials = load_checkpoint(checkpoint)
         population_ids = {r.run_id for r in population}
         complete = {
             row["run_id"]
@@ -465,6 +517,22 @@ def main(argv: list[str] | None = None) -> int:
     out_path = args.out / (
         "primary_study_stub.json" if args.stub_llm else "primary_study.json"
     )
+
+    intended = out_path
+    out_path, displaced = resolve_output_path(
+        out_path, complete=result["population_complete"]
+    )
+    if displaced:
+        print(
+            f"\n  incomplete run: {judged}/{len(population)} judged under "
+            f"{result['judge_model']}. Not overwriting {intended.name}, which "
+            f"holds a complete study of {displaced.get('n')} run(s) under "
+            f"{displaced.get('judge_model')}.\n  Writing to {out_path.name} "
+            f"instead. Rerun without --restart to resume onto the full "
+            f"population.",
+            file=sys.stderr,
+        )
+
     out_path.write_text(json.dumps(result, indent=2))
 
     print("\n" + "=" * 68)

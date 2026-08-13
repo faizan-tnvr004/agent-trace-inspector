@@ -70,10 +70,18 @@ test:
 coverage:
 	@cd backend && ../$(PY) -m pytest --cov=app/extraction --cov-report=term-missing -q
 
+# The judge is pinned here rather than taken from .env. The published table names
+# one judge, and a study whose model depends on a local, gitignored file is not
+# reproducible: a .env left pointing at a model with a 20-per-day cap turns
+# `make reproduce` into a partial run under a different judge. Override
+# deliberately with `make eval JUDGE=some-other-model`.
+JUDGE ?= gemini-3.1-flash-lite
+
 eval:
 	@test -f .env || { echo "no .env; copy .env.example and add GEMINI_API_KEY"; exit 1; }
 	set -a; . ./.env; set +a; \
-	$(PY) evaluation/run_study.py --out $(RESULTS) --corpus $(CORPUS_DIR)
+	$(PY) evaluation/run_study.py --out $(RESULTS) --corpus $(CORPUS_DIR) \
+		--model $(JUDGE)
 
 # Recomputes every published number from the committed corpus. Corpus generation
 # is deliberately excluded: it needs API quota and is not bit-reproducible, which

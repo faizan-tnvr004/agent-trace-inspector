@@ -23,6 +23,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from app.extraction.embeddings import cosine_similarity
+from app.grading import answer_matches
 from app.extraction.scoring import as_run
 from app.models import Run, Step
 
@@ -108,11 +109,6 @@ def classify_rejection(
     resolved = as_run(run)
     if not resolved.ground_truth:
         return None
-
-    # Imported here rather than at module scope: the harness imports grading,
-    # and importing it the other way round at module level would make the
-    # extraction package depend on the harness package.
-    from harness.grading import answer_matches
 
     revision = _revision_after(resolved, critique_step)
     if revision is None:

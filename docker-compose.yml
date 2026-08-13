@@ -11,7 +11,10 @@ services:
     ports:
       - "8000:8000"
     environment:
-      TRACE_DB_PATH: /app/data/traces.db
+      # Must be on the writable volume below, not under /app/data, which is
+      # mounted read-only. Pointing it at the read-only mount makes the backend
+      # fail at startup when it tries to create the database file.
+      TRACE_DB_PATH: /app/var/traces.db
       CORPUS_DIR: /app/data/corpus
       EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
       # Only needed to regenerate the corpus or rerun the study from inside the

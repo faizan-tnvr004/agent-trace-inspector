@@ -42,7 +42,7 @@ from langgraph.graph import END, START, StateGraph
 
 from app.models import InjectedFault
 from harness.faults import apply_fault
-from harness.grading import answer_matches
+from app.grading import answer_matches
 from harness.llm import LLMClient
 from harness.tracer import TraceRecorder
 

@@ -1,8 +1,19 @@
 """Deciding whether a run produced the correct answer.
 
-Not in the specification's file tree; separated out because both workflows and
-the corpus generator need the same rule, and a grading rule that drifts between
-workflows would make `success` incomparable across the corpus.
+Not in the specification's file tree; separated out because the workflows, the
+corpus generator and the rejection classifier all need the same rule, and a
+grading rule that drifted between them would make `success` incomparable across
+the corpus.
+
+It lives under `app/` rather than `harness/` because of import direction. The
+harness already imports `app.models`, so `harness` depends on `app`; putting
+grading in `harness` and importing it from `app.extraction.rejection` made the
+dependency circular in practice. `harness` is not an installed package, so that
+import failed whenever the process ran with `backend/` as its working directory,
+which is how both uvicorn and the container run: `GET /runs/{id}/export`
+returned 500 on every run that had a critique step. Tests missed it because
+pytest puts the repository root on the path, and the endpoint check missed it
+because the sampled run had no critiques.
 
 Grading is deliberately lenient about presentation and strict about value. The
 model is asked for a final answer in prose, so "the answer is 96" and "96

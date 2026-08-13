@@ -24,7 +24,7 @@ from harness.faults import (
     applicable_faults,
     apply_fault,
 )
-from harness.grading import answer_matches, normalise
+from app.grading import answer_matches, normalise
 from harness.llm import LLMResponse, StubClient, notional_cost_usd
 from harness.tracer import TraceRecorder
 from harness.workflows.rag_qa import load_corpus, retrieve

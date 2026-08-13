@@ -276,6 +276,59 @@ def test_cost_states_that_the_basis_is_notional(client, conn) -> None:
 # ---------------------------------------------------------------------------
 
 
+def test_export_works_on_a_run_with_critique_steps(client, conn) -> None:
+    """Regression test.
+
+    `/export` only reaches the rejection classifier on runs that have a critique
+    step, and the classifier needs the grading rule. While grading lived in
+    `harness`, which is not an installed package, that import failed whenever the
+    process ran with `backend/` as its working directory, which is how both
+    uvicorn and the container run: every reviewer_pipeline run returned 500.
+
+    The original endpoint check missed it because it sampled `items[0]`, which
+    happened to be a RAG run with no critiques.
+    """
+    insert_run(
+        conn,
+        _run(
+            "run-critique",
+            workflow_type="reviewer_pipeline",
+            ground_truth="96",
+            steps=[
+                make_step(
+                    0, run_id="run-critique", event_type="reasoning", output="It is 90."
+                ),
+                make_step(
+                    1,
+                    run_id="run-critique",
+                    event_type="critique",
+                    output="Wrong. VERDICT: REJECT",
+                    agent_id="reviewer-1",
+                    agent_role="reviewer",
+                ),
+                make_step(
+                    2,
+                    run_id="run-critique",
+                    event_type="revision",
+                    output="Corrected: it is 96.",
+                ),
+                make_step(
+                    3,
+                    run_id="run-critique",
+                    event_type="final",
+                    output="Corrected: it is 96.",
+                ),
+            ],
+            final_output="Corrected: it is 96.",
+        ),
+    )
+    response = client.get("/runs/run-critique/export")
+    assert response.status_code == 200, response.text
+    outcomes = response.json()["rejection_outcomes"]
+    assert outcomes, "a run with a critique must report a rejection outcome"
+    assert set(outcomes.values()) <= {"repair", "damage", "no_change"}
+
+
 def test_export_is_self_contained(client, conn) -> None:
     insert_run(conn, _run("run-exp"))
     body = client.get("/runs/run-exp/export").json()

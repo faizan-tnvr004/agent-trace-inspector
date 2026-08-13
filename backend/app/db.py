@@ -12,6 +12,7 @@ nothing queries inside them, and they always travel with their owning row.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from collections.abc import Iterable, Iterator
@@ -22,9 +23,12 @@ from typing import Any
 from app.models import Run, RunSummary, Step
 
 __all__ = [
+    "CORPUS_FINGERPRINT_KEY",
     "connect",
+    "corpus_fingerprint",
     "count_runs",
     "delete_run",
+    "get_meta",
     "get_run",
     "init_db",
     "insert_run",
@@ -33,7 +37,11 @@ __all__ = [
     "load_corpus_directory",
     "open_db",
     "run_ids",
+    "set_meta",
 ]
+
+#: Meta key holding the fingerprint of the corpus the runs table was built from.
+CORPUS_FINGERPRINT_KEY = "corpus_fingerprint"
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -48,7 +56,18 @@ CREATE TABLE IF NOT EXISTS runs (
     started_at      TEXT    NOT NULL,
     completed_at    TEXT    NOT NULL,
     total_cost_usd  REAL    NOT NULL DEFAULT 0.0,
-    total_tokens    INTEGER NOT NULL DEFAULT 0
+    total_tokens    INTEGER NOT NULL DEFAULT 0,
+    -- 'corpus' for runs projected from the committed corpus files, 'api' for
+    -- runs ingested through POST /runs. A corpus reload replaces the former and
+    -- must never touch the latter.
+    source          TEXT    NOT NULL DEFAULT 'api'
+);
+
+-- Small key/value store. Currently one key, the fingerprint of the corpus the
+-- runs table was projected from.
+CREATE TABLE IF NOT EXISTS meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS steps (
@@ -139,10 +158,47 @@ def open_db(db_path: str | Path) -> Iterator[sqlite3.Connection]:
 
 def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA_SQL)
+    # `CREATE TABLE IF NOT EXISTS` does not add a column to a table that already
+    # exists, and the container keeps its database in a named volume that
+    # outlives the image. A database created before `source` existed would
+    # otherwise fail every query that mentions it.
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(runs)")}
+    if "source" not in columns:
+        conn.execute("ALTER TABLE runs ADD COLUMN source TEXT NOT NULL DEFAULT 'api'")
     conn.commit()
 
 
-def insert_run(conn: sqlite3.Connection, run: Run) -> None:
+def get_meta(conn: sqlite3.Connection, key: str) -> str | None:
+    row = conn.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
+    return row["value"] if row else None
+
+
+def set_meta(conn: sqlite3.Connection, key: str, value: str) -> None:
+    with conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", (key, value)
+        )
+
+
+def corpus_fingerprint(corpus_dir: str | Path) -> str:
+    """A digest of the corpus files' contents.
+
+    Content rather than file count or modification time. The regenerated corpus
+    that prompted this had the same 120 files with the same names; only the bytes
+    inside 60 of them changed, so anything coarser would have missed it. Hashing
+    120 small files costs a few milliseconds at boot.
+    """
+    directory = Path(corpus_dir)
+    digest = hashlib.sha256()
+    if not directory.is_dir():
+        return ""
+    for path in sorted(directory.glob("run_*.json")):
+        digest.update(path.name.encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def insert_run(conn: sqlite3.Connection, run: Run, *, source: str = "api") -> None:
     """Insert or replace a run and all of its steps in one transaction.
 
     Replacing rather than failing on conflict keeps corpus loading idempotent:
@@ -155,8 +211,8 @@ def insert_run(conn: sqlite3.Connection, run: Run) -> None:
             INSERT OR REPLACE INTO runs (
                 run_id, workflow_type, workflow_version, task_input,
                 final_output, success, ground_truth, injected_fault,
-                started_at, completed_at, total_cost_usd, total_tokens
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                started_at, completed_at, total_cost_usd, total_tokens, source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 run.run_id,
@@ -175,6 +231,7 @@ def insert_run(conn: sqlite3.Connection, run: Run) -> None:
                 run.completed_at.isoformat(),
                 run.total_cost_usd,
                 run.total_tokens,
+                source,
             ),
         )
         conn.executemany(
@@ -282,10 +339,33 @@ def load_corpus_directory(conn: sqlite3.Connection, corpus_dir: str | Path) -> i
         return 0
 
     loaded = 0
+    seen: list[str] = []
     for path in sorted(directory.glob("run_*.json")):
         run = Run.model_validate(json.loads(path.read_text()))
-        insert_run(conn, run)
+        insert_run(conn, run, source="corpus")
+        seen.append(run.run_id)
         loaded += 1
+
+    # Regenerating the corpus mints fresh run ids, so the previous projection
+    # does not overlap the new one and replacing by id leaves every old run
+    # behind. Without this, reloading a regenerated corpus doubles the run count
+    # and serves both versions side by side. Scoped to `source = 'corpus'` so a
+    # run ingested through POST /runs is never collateral.
+    placeholders = ", ".join("?" * len(seen))
+    with conn:
+        conn.execute(
+            f"DELETE FROM steps WHERE run_id IN ("  # noqa: S608 - ids are bound
+            f"SELECT run_id FROM runs WHERE source = 'corpus'"
+            f"{f' AND run_id NOT IN ({placeholders})' if seen else ''})",
+            seen,
+        )
+        conn.execute(
+            "DELETE FROM runs WHERE source = 'corpus'"
+            + (f" AND run_id NOT IN ({placeholders})" if seen else ""),
+            seen,
+        )
+
+    set_meta(conn, CORPUS_FINGERPRINT_KEY, corpus_fingerprint(directory))
     return loaded
 
 

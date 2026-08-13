@@ -1,8 +1,12 @@
 # One command start: `docker compose up --build`.
 #
-# The backend loads the committed corpus into SQLite on first boot, so a reviewer
-# with no setup knowledge gets a working system with data in it (NFR-4). No
-# database service, no queue, no cache: the corpus is hundreds of runs.
+# The backend loads the committed corpus into SQLite on boot, so a reviewer with
+# no setup knowledge gets a working system with data in it (NFR-4). No database
+# service, no queue, no cache: the corpus is hundreds of runs.
+#
+# The load repeats whenever the corpus files change, not only on first boot. The
+# volume below outlives `docker compose down`, so a database built from an
+# earlier corpus would otherwise keep serving it.
 services:
   backend:
     build:

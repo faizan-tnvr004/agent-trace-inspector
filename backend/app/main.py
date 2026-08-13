@@ -1,9 +1,9 @@
 """FastAPI application: router mounting, CORS, and corpus bootstrap.
 
-On startup the committed corpus is loaded into SQLite if the database is empty.
-That is what makes `docker compose up` from a clean clone produce a working
-system with data in it (NFR-4), without a separate seeding step a reviewer has
-to know about.
+On startup the committed corpus is loaded into SQLite if the database is empty
+or if the corpus files have changed since the database was built. That is what
+makes `docker compose up` from a clean clone produce a working system with data
+in it (NFR-4), without a separate seeding step a reviewer has to know about.
 """
 
 from __future__ import annotations
@@ -16,7 +16,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.runs import router as runs_router
-from app.db import connect, count_runs, init_db, load_corpus_directory
+from app.db import (
+    CORPUS_FINGERPRINT_KEY,
+    connect,
+    corpus_fingerprint,
+    count_runs,
+    get_meta,
+    init_db,
+    load_corpus_directory,
+)
 from app.deps import corpus_dir, db_path
 
 logger = logging.getLogger("trace_inspector")
@@ -33,14 +41,28 @@ ALLOWED_ORIGINS = [
 
 
 def bootstrap_corpus() -> int:
-    """Load the committed corpus into SQLite if the database has no runs."""
+    """Project the committed corpus into SQLite when it is new or has changed.
+
+    Skipping purely because the database already holds runs was wrong, and
+    silently so. The container keeps its database in a named volume that
+    survives `docker compose down`, so after the corpus was regenerated the
+    volume went on serving the superseded traces while the results in the
+    repository described the new ones. Nothing failed; the data was just old.
+    """
     conn = connect(db_path())
     try:
         init_db(conn)
         existing = count_runs(conn)
-        if existing:
-            logger.info("database already holds %d runs; skipping load", existing)
+        current = corpus_fingerprint(corpus_dir())
+        if existing and get_meta(conn, CORPUS_FINGERPRINT_KEY) == current:
+            logger.info(
+                "database matches the corpus at %s (%d runs); skipping load",
+                corpus_dir(),
+                existing,
+            )
             return existing
+        if existing:
+            logger.info("corpus at %s has changed; reloading", corpus_dir())
         loaded = load_corpus_directory(conn, corpus_dir())
         logger.info("loaded %d runs from %s", loaded, corpus_dir())
         return loaded

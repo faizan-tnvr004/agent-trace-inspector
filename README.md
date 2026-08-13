@@ -292,10 +292,18 @@ tier and actual spend was zero. `cost_usd` figures are computed from published
 list prices so that the cost view is not vacuous; total notional cost of the
 committed corpus is $0.0135. No figure here represents money spent.
 
-**Docker is unverified.** `docker-compose.yml` and both Dockerfiles are written
-and committed, but Docker is not installed on the machine this was built on, so
-nothing has proved the images build. The backend and frontend were verified
-running natively.
+**Docker is verified.** `docker compose up --build` builds both images and
+serves the committed corpus: backend 2.15GB, frontend 454MB, 120 runs loaded
+from a read-only mount, and the frontend container reaching the backend over the
+compose network. Running it for the first time exposed three defects that no
+test had caught, which are described in the commit history: `/runs/{id}/export`
+returned 500 on every run with a critique step because the grading rule lived in
+a package that is not importable with `backend/` as the working directory; the
+database path pointed at the read-only mount; and the image was pulling the CUDA
+build of torch, several gigabytes of unreachable NVIDIA libraries, against the
+specification's requirement that the embedding model run on CPU. Torch is now
+installed from the CPU index and `torch.cuda.is_available()` is False in the
+image.
 
 **The PR corpus is unlabelled**, so the secondary study has no results yet. Agent
 authorship detection is also imperfect: a PR written with agent assistance but

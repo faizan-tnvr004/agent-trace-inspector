@@ -54,10 +54,15 @@ ALL_FAULT_TYPES: tuple[FaultType, ...] = (
 # workflow that has no such step would record ground truth for a defect that
 # was never introduced.
 _BY_WORKFLOW: dict[str, tuple[FaultType, ...]] = {
+    # `forced_false_rejection` became applicable to rag_qa at workflow version
+    # 2.0.0, which added a per-claim verification stage. Before that the
+    # workflow had no reviewer to force, and the fault was reviewer_pipeline
+    # only.
     "rag_qa": (
         "dropped_retrieval",
         "truncated_tool_result",
         "injected_contradiction",
+        "forced_false_rejection",
     ),
     "reviewer_pipeline": (
         "truncated_tool_result",

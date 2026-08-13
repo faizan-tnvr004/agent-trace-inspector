@@ -182,11 +182,56 @@ def test_unknown_fault_type_is_rejected() -> None:
 def test_faults_are_only_offered_to_workflows_that_can_carry_them() -> None:
     """`dropped_retrieval` needs a retrieval step and `forced_false_rejection`
     needs a reviewer. Offering either to the wrong workflow would record ground
-    truth for a defect that was never introduced."""
+    truth for a defect that was never introduced.
+
+    Checked against the workflow's actual step vocabulary rather than a fixed
+    list, so this keeps holding as the workflows change. `rag_qa` gained a
+    reviewer at version 2.0.0 and with it a fourth applicable fault.
+    """
     assert "dropped_retrieval" not in applicable_faults("reviewer_pipeline")
-    assert "forced_false_rejection" not in applicable_faults("rag_qa")
     assert "dropped_retrieval" in applicable_faults("rag_qa")
     assert "forced_false_rejection" in applicable_faults("reviewer_pipeline")
+
+    for workflow, emitted in (
+        ("rag_qa", _emitted_event_types("rag_qa")),
+        ("reviewer_pipeline", _emitted_event_types("reviewer_pipeline")),
+    ):
+        faults = applicable_faults(workflow)
+        if "dropped_retrieval" in faults:
+            assert "retrieval" in emitted, workflow
+        if "forced_false_rejection" in faults:
+            assert "critique" in emitted, workflow
+
+
+def _emitted_event_types(workflow: str) -> set[str]:
+    """Event types a workflow actually emits, from a stub run."""
+    import random
+
+    from harness.llm import StubClient
+
+    if workflow == "rag_qa":
+        from harness.workflows.rag_qa import load_corpus, run_rag_qa
+
+        chunks, questions = load_corpus()
+        run = run_rag_qa(
+            questions[0], StubClient(), chunks, rng=random.Random(1)
+        )
+    else:
+        import json
+        from pathlib import Path
+
+        from harness.workflows.reviewer_pipeline import run_reviewer_pipeline
+
+        tasks = json.loads(
+            (
+                Path(__file__).resolve().parents[2]
+                / "harness"
+                / "tasks"
+                / "math_tasks.json"
+            ).read_text()
+        )
+        run = run_reviewer_pipeline(tasks[0], StubClient(), rng=random.Random(1))
+    return {s.event_type for s in run.steps}
 
 
 def test_union_of_applicable_faults_covers_all_four_types() -> None:

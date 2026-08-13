@@ -25,20 +25,24 @@ runs.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import random
 import re
 import threading
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 __all__ = [
     "LLMClient",
     "LLMResponse",
     "LLMUnavailable",
     "GeminiClient",
+    "ResponseCache",
     "StubClient",
     "build_client",
+    "default_cache_dir",
     "notional_cost_usd",
 ]
 
@@ -131,6 +135,75 @@ class LLMClient:
         raise NotImplementedError
 
 
+class ResponseCache:
+    """Disk cache of completions, keyed by exactly what determines the answer.
+
+    Corpus generation is quota-bound, not compute-bound: the free tier allows a
+    few hundred calls a day, and a deep workflow spends several per run. Without
+    a cache, fixing a bug in a late step of the graph means re-paying for every
+    call in the earlier steps, and a run interrupted part-way through the corpus
+    starts again from nothing.
+
+    The key covers model, system prompt and prompt. Temperature is fixed at 0
+    everywhere in this project, so it is not part of the key; if that ever
+    changes, it must be added or the cache will serve a response generated under
+    different settings.
+
+    Cached entries are plain JSON, one file per key, so a suspect entry can be
+    read and deleted by hand. Latency is deliberately *not* replayed from the
+    cache: a cached call reports 0 ms, because reporting the original latency
+    would put fabricated timings into the corpus.
+    """
+
+    def __init__(self, directory: Path | str) -> None:
+        self.directory = Path(directory)
+        self.hits = 0
+        self.misses = 0
+
+    def _key(self, model: str, prompt: str, system: str | None) -> str:
+        digest = hashlib.sha256()
+        for part in (model, system or "", prompt):
+            digest.update(part.encode())
+            digest.update(b"\x00")
+        return digest.hexdigest()
+
+    def get(self, model: str, prompt: str, system: str | None) -> LLMResponse | None:
+        path = self.directory / f"{self._key(model, prompt, system)}.json"
+        if not path.is_file():
+            self.misses += 1
+            return None
+        try:
+            row = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError):
+            self.misses += 1
+            return None
+        self.hits += 1
+        return LLMResponse(
+            text=row["text"],
+            prompt_tokens=row["prompt_tokens"],
+            completion_tokens=row["completion_tokens"],
+            latency_ms=0,
+            model=row["model"],
+        )
+
+    def put(
+        self, model: str, prompt: str, system: str | None, response: LLMResponse
+    ) -> None:
+        self.directory.mkdir(parents=True, exist_ok=True)
+        path = self.directory / f"{self._key(model, prompt, system)}.json"
+        payload = {
+            "model": response.model,
+            "text": response.text,
+            "prompt_tokens": response.prompt_tokens,
+            "completion_tokens": response.completion_tokens,
+        }
+        # Written via a temporary file: a process killed mid-write must not
+        # leave a half-JSON entry that later reads as a cache miss forever.
+        temp = path.with_suffix(".tmp")
+        temp.write_text(json.dumps(payload))
+        temp.replace(path)
+
+
 class GeminiClient(LLMClient):
     """Gemini via the `google-genai` SDK.
 
@@ -147,6 +220,7 @@ class GeminiClient(LLMClient):
         rpm_limit: int = 10,
         max_retries: int = 5,
         temperature: float = 0.0,
+        cache: ResponseCache | None = None,
     ) -> None:
         key = api_key or os.environ.get("GEMINI_API_KEY", "")
         if not key:
@@ -169,6 +243,7 @@ class GeminiClient(LLMClient):
         self._limiter = _RateLimiter(rpm_limit)
         self._max_retries = max_retries
         self._temperature = temperature
+        self._cache = cache
 
     def complete(
         self,
@@ -178,6 +253,12 @@ class GeminiClient(LLMClient):
         hint: dict[str, str] | None = None,
     ) -> LLMResponse:
         del hint  # stub-only channel; never reaches a real model call
+
+        if self._cache is not None:
+            cached = self._cache.get(self.model, prompt, system)
+            if cached is not None:
+                return cached
+
         from google.genai import types
 
         config = types.GenerateContentConfig(
@@ -208,13 +289,16 @@ class GeminiClient(LLMClient):
 
             latency_ms = int((time.monotonic() - started) * 1000)
             usage = getattr(response, "usage_metadata", None)
-            return LLMResponse(
+            result = LLMResponse(
                 text=(response.text or "").strip(),
                 prompt_tokens=getattr(usage, "prompt_token_count", 0) or 0,
                 completion_tokens=getattr(usage, "candidates_token_count", 0) or 0,
                 latency_ms=latency_ms,
                 model=self.model,
             )
+            if self._cache is not None:
+                self._cache.put(self.model, prompt, system, result)
+            return result
 
         raise LLMUnavailable(f"Gemini call failed: {last_error}")
 
@@ -312,15 +396,33 @@ def _perturb(answer: str, rng: random.Random) -> str:
     return str(int(result)) if float(result).is_integer() else f"{result:g}"
 
 
+def default_cache_dir() -> Path:
+    """Where cached completions live. Gitignored and safe to delete."""
+    configured = os.environ.get("LLM_CACHE_DIR")
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parents[1] / ".cache" / "llm"
+
+
 def build_client(
     model: str,
     *,
     stub: bool = False,
     rpm_limit: int | None = None,
+    cache: bool = True,
 ) -> LLMClient:
-    """Construct the client the harness and judge should use."""
+    """Construct the client the harness and judge should use.
+
+    The cache is on by default. It only ever returns a response this project
+    already paid for under the same model and prompt, so it changes what a run
+    costs, not what it says.
+    """
     if stub:
         return StubClient()
     if rpm_limit is None:
         rpm_limit = int(os.environ.get("LLM_RPM_LIMIT", "10"))
-    return GeminiClient(model, rpm_limit=rpm_limit)
+    return GeminiClient(
+        model,
+        rpm_limit=rpm_limit,
+        cache=ResponseCache(default_cache_dir()) if cache else None,
+    )

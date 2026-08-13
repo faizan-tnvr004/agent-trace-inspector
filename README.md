@@ -42,7 +42,105 @@ fault labels are removed from the text.
 
 ## 3. Results
 
-### Primary study
+Ordered by how much the design can support, strongest first. The primary study
+is fourth because, as run, it does not test the question it was built to answer;
+that is explained in 3.4 rather than buried in the limitations.
+
+All figures come from `gemini-3.5-flash-lite` for corpus generation and
+`gemini-3.1-flash-lite` as the study judge, both on the free tier. Free-tier
+prompts may be used to improve Google's products, so nothing confidential went
+into this corpus, and every cost figure in this repository is **notional**:
+computed from published list prices to show what the same token usage would have
+cost, not money that was spent.
+
+### 3.1 Fault potency
+
+How often each injected fault actually changed the outcome. Direct measurement,
+no inference and no judge: the fault either flipped the run to a failure or it
+did not. This is the headline because it shapes everything downstream, and
+because it is the one number here that nothing else is contingent on.
+
+| Workflow | Fault type | Caused failure | Potency |
+|---|---|---|---|
+| rag_qa | dropped_retrieval | 15/15 | 100% |
+| rag_qa | injected_contradiction | 13/15 | 87% |
+| rag_qa | truncated_tool_result | 2/15 | 13% |
+| reviewer_pipeline | injected_contradiction | 1/10 | 10% |
+| reviewer_pipeline | forced_false_rejection | 0/10 | 0% |
+| reviewer_pipeline | truncated_tool_result | 0/9 | 0% |
+
+**The reviewer pipeline is close to immune to injected faults: 1 failure from 29
+injections.** The mechanism is visible in the traces rather than inferred. The
+reviewer catches the corrupted answer, the revision repairs it, and the run ends
+correct. `forced_false_rejection` is the sharpest case: forcing the reviewer to
+reject a correct answer produced zero failures in ten attempts, because the
+revision step re-derived the same answer.
+
+Two consequences worth stating. A reviewer-equipped workflow contributes almost
+nothing to an injected-fault study, so the evaluation population is dominated by
+one workflow and one fault family. And fault *type* matters far more than fault
+*presence*: retrieval faults are near-certain to cause failure, truncation
+faults rarely do, and the difference is an order of magnitude.
+
+### 3.2 The label-leak effect
+
+A methodological finding, and the one most likely to be useful to anyone else
+building a fault-injected corpus.
+
+The injected contradiction chunk was originally given the id
+`injected-contradiction`. Renaming it to a neutral `doc-47` and regenerating the
+corpus **dropped its potency from 15/15 to 13/15**, with nothing else changed.
+
+| Injected chunk id | Potency |
+|---|---|
+| `injected-contradiction` | 15/15 (100%) |
+| `doc-47` | 13/15 (87%) |
+
+An agent that can see a chunk announcing itself as an injection treats it as
+authoritative more readily than one that cannot. The label was not merely a
+leak in the *measurement*; it changed the **behaviour being measured**. A corpus
+built with self-describing fault markers therefore overstates how potent its
+faults are, and no amount of downstream blinding recovers the difference,
+because the agent already read the label at generation time.
+
+The leak was also unrecoverable by string substitution. Blinding removes the
+literal id, but an agent that read it can paraphrase it: one run's final answer
+said *"corrected by the injection notice"*, which no literal substitution
+catches. An earlier version of the primary study handled this by excluding three
+of 33 runs after the fact and reported 63.3% against 63.3% at n=30. Excluding
+contaminated runs was the wrong fix; not generating the label was the right one.
+The exclusion guard remains in the code and `--include-compromised` disables it,
+but it now excludes nothing.
+
+**Practical rule: name injected artifacts exactly as ordinary ones are named,
+and verify at generation time rather than at analysis time.**
+
+### 3.3 Heuristic attribution
+
+The tool's own failure attribution, which uses no LLM at all. This is a clean
+negative about the tool.
+
+| Fault type | correct | accuracy |
+|---|---|---|
+| dropped_retrieval | 11/15 | 73.3% |
+| injected_contradiction | 0/14 | 0.0% |
+| truncated_tool_result | 0/2 | 0.0% |
+| **overall** | **11/31** | **35.5%** |
+
+Seven of the 31 produced no prediction at all, which the tool reports as "the
+trace does not localise the cause" rather than guessing at step 0.
+
+**The 0/14 on injected contradictions is a genuine gap in the design, not a
+tuning problem.** The rule set scores steps that are missing, empty, thin or
+erroring. A retrieval that returns a full set of plausible chunks, one of which
+happens to contradict the others, is none of those things: it looks healthy by
+every signal the engine has. Detecting it would need a contradiction signal
+comparing retrieved chunks against each other, which does not exist in the
+engine and was not added, because adding it after seeing the result would be
+fitting the rules to the test set. The weights were fixed before the evaluation
+ran and have not been touched since.
+
+### 3.4 Primary study
 
 Population: all 31 failed runs carrying a known injected fault, with **no
 exclusions**. Judge: `gemini-3.1-flash-lite`, temperature 0, identical prompt in
@@ -56,9 +154,9 @@ both conditions.
 Input token reduction: **49.8%**. No judge response was unparseable in either
 condition.
 
-Agreement pattern: both conditions correct on 15 runs, both wrong on 9, and the
-disagreements nearly even — 4 that only extraction got and 3 that only the raw
-log got.
+Agreement pattern: both conditions correct on 15 runs, both wrong on 9, 4 that
+only extraction got and 3 that only the raw log got. Seven discordant pairs,
+four to three: **McNemar exact two-sided p = 1.000**.
 
 Per fault type:
 
@@ -68,86 +166,39 @@ Per fault type:
 | injected_contradiction | 5/14 | 7/14 |
 | truncated_tool_result | 2/2 | 1/2 |
 
-**This is a null result, and it is reported as the finding.** Extraction is one
-run ahead of the raw log out of 31. Seven runs separate the two conditions in
-either direction, four to three, which is what a coin looks like at this sample
-size; the difference carries no weight and is not claimed as an effect. What
-extraction did achieve is a halving of the material presented for no measurable
-change in accuracy. That is weaker than the hypothesis but not a negative
-result: the same conclusion is reachable from half the reading.
+#### The study as built does not test the stated hypothesis
 
-The most likely explanations, in order of how much we can support them. Traces
-in this corpus are short — mean 5.7 steps, range 4 to 8 — so a top-5 extraction
-is frequently not a subset but a reformatting of the whole trace. A judge that
-reads 2,879 tokens without difficulty is also not the length-limited reader the
-hypothesis is about. Both point the same way: the study as run tests the
-*presentation* of a short trace more than the *pruning* of a long one.
+The hypothesis is that pruning a long trace to its critical steps helps a reader
+locate a failure. This corpus cannot test that, because **extraction barely
+prunes anything**:
 
-An earlier version of this table read 63.3% against 63.3% at n=30, and reached
-it by **excluding three of 33 runs whose traces still named the injected fault
-after blinding**. That corpus was generated while the injected chunk carried the
-id `injected-contradiction`; the string is substituted out, but an agent that
-read it can paraphrase it into its own prose, and one run's final answer said
-*"corrected by the injection notice"* — which no literal substitution catches. A
-judge shown that text can locate the faulted step without reading the trace. The
-fix was to stop generating the label rather than to filter it afterwards: the
-chunk is now a neutral `doc-47`, the RAG half of the corpus was regenerated, and
-the leak check reports zero compromised runs, so the study runs on its whole
-eligible population. The exclusion path remains in the code as a guard, and
-`--include-compromised` disables it, but it now excludes nothing.
+| Measure | Value |
+|---|---|
+| Median steps per run (study population) | 4 |
+| Runs where the trace has ≤5 steps, so top-5 keeps everything | **18 of 31 (58%)** |
+| Mean steps removed by extraction | **0.48** |
 
-Removing the label was not free, and the cost is visible in the numbers above.
-Both conditions score lower than they did on the leaky corpus, and the injected
-contradiction fault lost two of its fifteen failures (see *Fault potency*). A
-self-announcing fault is both easier to attribute and more potent, which is
-exactly why it had to go.
+On more than half the population the two conditions contain **identical
+content**, and across the whole population extraction removes under half a step
+per run. Condition B is therefore not a subset of condition A; it is very largely
+a reformatting of it, prose where condition A is JSON.
 
-### Extraction engine, measured independently of the judge
+This is why the result is **not** reported as a null result. A null result means
+the design could have detected an effect and did not. This design could not:
+the conditions are near-identical by construction on a corpus whose median run is
+four steps, so p = 1.000 reflects the absence of a manipulation rather than the
+absence of an effect.
 
-The tool's own heuristic attribution, which uses no LLM at all:
+The 49.8% token reduction is real as a measurement but must not be read as
+pruning. It is **roughly half the tokens but nearly all the content**, and the
+saving comes mostly from prose-versus-JSON serialisation rather than from
+dropping steps. Format and length vary together here and cannot be separated.
 
-| Fault type | correct | accuracy |
-|---|---|---|
-| dropped_retrieval | 11/15 | 73.3% |
-| injected_contradiction | 0/14 | 0.0% |
-| truncated_tool_result | 0/2 | 0.0% |
-| **overall** | **11/31** | **35.5%** |
+Fixing this requires a deeper corpus, not a different analysis. Tuning the
+extraction weights until a difference appeared would be fitting to the outcome,
+and was not done.
 
-Seven of the 31 produced no prediction at all. The 0% on injected contradictions
-is a real gap rather than a tuning problem: the specified rule set scores
-missing, empty, thin and erroring steps, and a retrieval that returns a full set
-of plausible chunks — one of which happens to contradict the others — matches
-none of those rules. Detecting it would need a contradiction signal that does
-not currently exist.
-
-### Fault potency
-
-How often each injected fault actually changed the outcome. This is reported
-because it shapes everything downstream: a fault that changes nothing produces
-no failed run to attribute.
-
-| Workflow | Fault type | Caused failure | Potency |
-|---|---|---|---|
-| rag_qa | dropped_retrieval | 15/15 | 100% |
-| rag_qa | injected_contradiction | 13/15 | 87% |
-| rag_qa | truncated_tool_result | 2/15 | 13% |
-| reviewer_pipeline | injected_contradiction | 1/10 | 10% |
-| reviewer_pipeline | forced_false_rejection | 0/10 | 0% |
-| reviewer_pipeline | truncated_tool_result | 0/9 | 0% |
-
-Injected contradictions in `rag_qa` were 100% potent in an earlier corpus, when
-the injected chunk carried the id `injected-contradiction`. Renaming it to a
-neutral `doc-47` cost the fault two of its fifteen failures: an agent that can
-see a chunk announcing itself as an injection treats it as authoritative more
-readily than one that cannot. The fault is weaker now, and the number is honest.
-
-The reviewer pipeline is close to immune to injected faults, and inspection of
-the traces shows why: the reviewer catches the corrupted answer and the revision
-repairs it. That is the pipeline working as designed, and it means a
-reviewer-equipped workflow contributes very few failed runs to an
-injected-fault study.
-
-### Rejection outcomes
+### 3.5 Rejection outcomes
 
 The repair / damage / no-change taxonomy applied to every critique step, 78
 critiques across 60 runs:
@@ -163,28 +214,46 @@ written but lumps an *approving* reviewer together with one that objected and
 was ignored. Blended, the no-change rate is 96.2% simply because most critiques
 are approvals.
 
-Over actual rejections, **84.2% of criticism changed nothing.** This reproduces
-the finding from the author's prior work — a reviewer whose apparent safety was
-an artifact of the executor ignoring its critiques rather than of good
-reviewing — in a fresh setting with different tasks and a different model.
+Over actual rejections, 84.2% of criticism changed nothing: 16 of 19.
 
-### Provenance
+**This is directionally consistent with prior work, and n is too small to call a
+reproduction.** The author's earlier study found a reviewer whose apparent safety
+was an artifact of the executor ignoring its critiques rather than of good
+reviewing, and the direction here matches. But 19 rejections in a single task
+family under a single model is not enough to establish that, and one
+reclassified critique moves the rate by five points. Treated as a suggestive
+observation, not as evidence that the earlier finding generalises.
+
+### 3.6 Provenance
 
 Across all 120 runs, **89 of 335 claims (26.6%) have no supporting step**,
-affecting 65 of 120 runs. Support means an upstream step produced closely
-matching text; it is a statement about grounding, not about truth.
+affecting 65 of 120 runs. Support means an upstream step produced text with
+cosine similarity ≥ 0.6 to the claim.
 
-An earlier version of this figure was 120 of 388 (30.9%) and was inflated.
-Sentence splitting was treating citation markup as claims: fragments such as
-`Support: [doc-04#c2]` and `1962 (supported by [doc-01#c0])` are sentence-shaped
-but assert nothing, embed poorly against any step output, and were therefore
-counted as ungrounded. Eighteen of them cited a source while being labelled
-unsupported, which is self-contradictory on its face. Claim splitting now
-discards a fragment that carries no proposition once its citation markup is
-removed. The test is structural rather than a similarity threshold, so it does
-not move with the data.
+**Read this as a diagnostic of the tool, not as a property of the agents.** The
+number says how often this implementation failed to link a sentence to a step,
+which is not the same as how often an agent asserted something ungrounded. Three
+reasons it cannot carry the stronger reading:
 
-### Corpus
+- The 0.6 similarity threshold was never validated against human judgement. It
+  was chosen as a reasonable default and the figure moves with it.
+- Sentence-level splitting is not proposition-level splitting, so a sentence
+  carrying two assertions counts once, and a subordinate clause can be split off
+  and stranded.
+- Short text embeds badly. **25 of the 89 unsupported claims (28%) are under 40
+  characters**, and the median unsupported claim is exactly 40 characters. A
+  bare `ANSWER: 312` has little to embed and is easily scored unsupported even
+  when the step above it produced the number.
+
+A prior version of this figure was 120 of 388 (30.9%) and was inflated by
+citation markup being counted as claims: fragments such as `Support: [doc-04#c2]`
+are sentence-shaped but assert nothing. Eighteen of them cited a source while
+being labelled unsupported, which is self-contradictory on its face. Those are
+now discarded structurally rather than by threshold, which is why the current
+figure is lower. That fix removed an obvious artifact; it did not validate what
+remains.
+
+### 3.7 Corpus
 
 120 runs, 60 per workflow, 684 steps, 82,601 tokens. 74 runs (62%) carry an
 injected fault, spread across all four types. 31 runs both failed and carry a
@@ -265,38 +334,55 @@ through corpus generation, an import adapter, or `POST /runs`:
 
 ## 7. Limitations
 
-Stated plainly, worst first.
+Stated plainly, worst first. The first one invalidates the primary study as a
+test of the hypothesis; the rest bound what the other results mean.
 
-**The primary study tests presentation more than pruning.** Traces average 5.7
-steps, so a top-5 extraction often contains every step. Condition B also renders
-as prose while condition A renders as JSON, so format and length vary together
-and cannot be separated. A corpus of long traces would test the actual
-hypothesis; this one does not.
+**Traces are too short for the hypothesis to be testable.** The median run in the
+study population is **4 steps** and the maximum is 8. Top-5 extraction therefore
+keeps the entire trace on **18 of 31 runs (58%)** and removes **0.48 steps** per
+run on average. The two conditions are near-identical by construction, so the
+study measures serialisation format, not pruning. Everything else in 3.4 follows
+from this. A corpus of 20 to 40 step runs is required before the question can be
+asked at all, and no reanalysis of this corpus substitutes for it.
 
-**n = 31, single judge, single run.** No significance is claimed and none should
-be read in. The conditions differ by one run out of 31 and disagree on seven,
-four to three; nothing here separates them.
+**The effective corpus is one workflow and one fault family.** Fault potency is
+so skewed (3.1) that although the corpus holds 120 runs across two workflows and
+four fault types, the evaluation population is 31 runs of which 30 are `rag_qa`
+and 15 are `dropped_retrieval`. `forced_false_rejection` contributed zero failed
+runs and is absent from every per-type breakdown despite being injected ten
+times. Conclusions about "agent traces" are really conclusions about retrieval
+faults in one RAG pipeline.
 
-**The LLM judge may not proxy a human reader.** A judge that consumes 2,879
-tokens without effort is not the length-limited reader the research question is
-about. The SRS anticipated hand-checking a subsample; that has not been done.
+**Single model family.** Corpus generation used `gemini-3.5-flash-lite` and the
+judge was `gemini-3.1-flash-lite`. Both are Gemini tiers, so a judge evaluating
+traces produced by a closely related model cannot be separated from a judge
+evaluating traces produced by a *more or less capable* model. Any family-level
+effect — shared failure modes, shared phrasing, shared blind spots — is
+confounded with capability. A cross-family control (one Gemini, one non-Gemini)
+is the obvious next step and has not been run.
+
+**An LLM judge is not the reader the question is about.** The research question
+concerns a human inspecting a trace. A judge that consumes 2,879 tokens without
+effort has none of the length limits that motivate extraction, so even a
+well-powered version of this study would answer a different question than the one
+asked. The SRS anticipated hand-checking a subsample against human readers; that
+has not been done.
+
+**n = 31, single judge, single run, no variance estimate.** Temperature 0 gives
+one sample per condition per run, so judge variance is unmeasured. Seven
+discordant pairs give McNemar exact p = 1.000. No significance is claimed.
+
+**Claims are sentences, not propositions.** Semantic claim extraction would need
+an LLM in a path that must stay deterministic, so sentence splitting is a
+deliberate fallback. A sentence carrying two assertions counts once; a short
+claim can be marked unsupported because short text embeds badly, and 28% of
+unsupported claims are under 40 characters. The 0.6 similarity threshold was
+never validated against human judgement. See 3.6.
 
 **Injected faults are probably easier to find than natural ones.** They are
-introduced at a known point by construction. The corpus contains no naturally
-failing runs to compare against.
-
-**Fault potency is very uneven**, so the evaluation population is dominated by
-`rag_qa` retrieval faults. `forced_false_rejection` contributed zero failed runs,
-so that fault type is absent from the study's per-type breakdown despite being
-present in the corpus.
-
-**Claims are sentences, not propositions.** Sentence-level splitting is a
-deliberate fallback: semantic claim extraction is unreliable and would require an
-LLM in a path that must stay deterministic. A sentence carrying two assertions
-counts as one claim, and a short claim can still be marked unsupported simply
-because short text embeds poorly. Citation-only fragments are now discarded
-before claims are counted, but the underlying weakness of matching short text by
-embedding remains.
+introduced at a known point by construction, and 3.2 shows the injection itself
+can change agent behaviour. The corpus contains no naturally failing runs to
+compare against.
 
 **Gemini replaces the pinned `anthropic` SDK.** This is a documented deviation
 from the specified stack, made on the repository owner's instruction. Free-tier
